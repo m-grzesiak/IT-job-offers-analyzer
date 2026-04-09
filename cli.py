@@ -7,8 +7,13 @@ Commands auto-fetch data when needed and cache results in session.
 """
 
 import os
+import select
 import statistics
+import sys
+import termios
+import threading
 import time
+import tty
 from collections import Counter
 from types import SimpleNamespace
 
@@ -21,6 +26,7 @@ from rich.console import Console
 from rich.panel import Panel
 from rich.progress import Progress, SpinnerColumn, TextColumn, BarColumn, MofNCompleteColumn
 from rich.table import Table
+from rich.text import Text
 from rich.theme import Theme
 
 import analyzer
@@ -51,6 +57,87 @@ state = {
     "workplace": None,
     "has_details": False,
 }
+
+# ─── Cancellation ────────────────────────────────────────────────────────────
+
+
+class CancelledError(Exception):
+    """Raised when the user cancels an operation with ESC."""
+    pass
+
+
+_current_op = None
+
+
+class CancellableOperation:
+    """Context manager that listens for ESC key to cancel the current operation."""
+
+    def __init__(self):
+        self._cancel_event = threading.Event()
+        self._thread = None
+        self._old_settings = None
+
+    def __enter__(self):
+        try:
+            self._old_settings = termios.tcgetattr(sys.stdin)
+            tty.setcbreak(sys.stdin.fileno())
+            self._thread = threading.Thread(target=self._listen, daemon=True)
+            self._thread.start()
+        except Exception:
+            pass
+        return self
+
+    def __exit__(self, *args):
+        self._cancel_event.set()
+        if self._thread:
+            self._thread.join(timeout=0.5)
+        if self._old_settings:
+            try:
+                termios.tcsetattr(sys.stdin, termios.TCSADRAIN, self._old_settings)
+            except Exception:
+                pass
+
+    def _listen(self):
+        try:
+            while not self._cancel_event.is_set():
+                if select.select([sys.stdin], [], [], 0.1)[0]:
+                    if self._cancel_event.is_set():
+                        return
+                    ch = sys.stdin.read(1)
+                    if ch == '\x1b':
+                        self._cancel_event.set()
+                        return
+        except Exception:
+            pass
+
+    @property
+    def cancelled(self):
+        return self._cancel_event.is_set()
+
+
+def check_cancel():
+    """Raise CancelledError if the current operation was cancelled via ESC."""
+    if _current_op and _current_op.cancelled:
+        raise CancelledError()
+
+
+def _cancel_aware_sleep(seconds):
+    """Sleep that can be interrupted by ESC cancellation."""
+    if _current_op:
+        if _current_op._cancel_event.wait(timeout=seconds):
+            raise CancelledError()
+    else:
+        time.sleep(seconds)
+
+
+class CancellableProgress(Progress):
+    """Progress display that shows 'Press ESC to cancel' below the progress bars."""
+
+    def get_renderables(self):
+        yield from super().get_renderables()
+        if not self.finished:
+            yield Text("  Press ESC to cancel", style="dim")
+
 
 # ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -262,7 +349,7 @@ def _scrape(city, category, experience, workplace, fetch_details):
     console.print()
 
     try:
-        with Progress(
+        with CancellableProgress(
                 SpinnerColumn(),
                 TextColumn("[progress.description]{task.description}"),
                 BarColumn(),
@@ -290,6 +377,7 @@ def _scrape(city, category, experience, workplace, fetch_details):
 
             while True:
                 data = scrapper.fetch_page(params, cursor)
+                check_cancel()
                 offers = data.get("data", [])
                 meta = data.get("meta", {})
                 total_items = meta.get("totalItems", 0)
@@ -310,7 +398,7 @@ def _scrape(city, category, experience, workplace, fetch_details):
                 if next_cursor is None or next_cursor <= cursor:
                     break
                 cursor = next_cursor
-                time.sleep(0.3)
+                _cancel_aware_sleep(0.3)
 
             progress.update(task, completed=len(all_offers))
 
@@ -325,7 +413,8 @@ def _scrape(city, category, experience, workplace, fetch_details):
                         pass
                     results.append(offer)
                     progress.update(detail_task, completed=i + 1)
-                    time.sleep(0.15)
+                    check_cancel()
+                    _cancel_aware_sleep(0.15)
                 state["offers"] = results
                 state["has_details"] = True
             else:
@@ -342,6 +431,8 @@ def _scrape(city, category, experience, workplace, fetch_details):
         console.print()
         return True
 
+    except CancelledError:
+        raise
     except Exception as e:
         console.print(f"  [error]Scraping error: {e}[/]")
         return False
@@ -806,7 +897,15 @@ def dispatch(user_input: str):
     if cmd in COMMANDS:
         func, sig = COMMANDS[cmd]
         if func:
-            func(args_str) if sig == "args" else func()
+            global _current_op
+            with CancellableOperation() as op:
+                _current_op = op
+                try:
+                    func(args_str) if sig == "args" else func()
+                except CancelledError:
+                    console.print("\n  [warn]Operation cancelled[/]")
+                finally:
+                    _current_op = None
     else:
         console.print(f"  [error]Unknown command: {cmd}[/]")
         console.print("  [muted]Type /help to see available commands[/]")
