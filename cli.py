@@ -655,34 +655,25 @@ def cmd_analyze(args_str: str):
     console.print()
 
 
-def cmd_top(args_str: str):
-    """Show companies above P90."""
-    args = _parse_args(args_str)
-    if not _ensure_data(args):
-        return
-
-    salaries = analyzer.extract_salaries(state["offers"], args.emp_type)
-    active = salaries
-
-    midpoints = sorted([(lo + hi) / 2 for lo, hi, _ in active])
+def _print_top_for_type(salaries, pct: int, label: str):
+    """Print top-companies tables for a single employment type."""
+    midpoints = sorted([(lo + hi) / 2 for lo, hi, _ in salaries])
     if len(midpoints) < 10:
-        console.print("  [warn]Not enough data[/]")
+        console.print(f"  [muted]{label}: not enough data[/]")
         return
 
-    pct = args.top_percentile or 90
     threshold = analyzer.percentile(midpoints, pct)
-
-    above = [(lo, hi, o) for lo, hi, o in active if (lo + hi) / 2 > threshold]
+    above = [(lo, hi, o) for lo, hi, o in salaries if (lo + hi) / 2 > threshold]
     above.sort(key=lambda x: (x[0] + x[1]) / 2, reverse=True)
 
     if not above:
-        console.print(f"  [muted]No offers > P{pct}[/]")
+        console.print(f"  [muted]{label}: no offers > P{pct}[/]")
         return
 
     company_counts = Counter(o["company_name"] for _, _, o in above)
 
     summary = Table(
-        title=f"Companies > P{pct} ({fmt_salary(threshold)})",
+        title=f"Companies > P{pct} ({fmt_salary(threshold)}) — {label}",
         title_style="bold magenta",
         border_style="dim",
     )
@@ -699,7 +690,7 @@ def cmd_top(args_str: str):
     console.print(summary)
 
     detail = Table(
-        title=f"Offer details > P{pct}",
+        title=f"Offer details > P{pct} — {label}",
         title_style="bold magenta",
         border_style="dim",
     )
@@ -716,6 +707,30 @@ def cmd_top(args_str: str):
 
     console.print()
     console.print(detail)
+
+
+def cmd_top(args_str: str):
+    """Show companies above P90."""
+    args = _parse_args(args_str)
+    if not _ensure_data(args):
+        return
+
+    pct = args.top_percentile or 90
+    types_to_show = [args.emp_type] if args.emp_type else scrapper.EMPLOYMENT_TYPES
+
+    any_data = False
+    for et in types_to_show:
+        et_salaries = analyzer.extract_salaries(state["offers"], et)
+        if not et_salaries:
+            continue
+        any_data = True
+        label = et.upper() if et else "all"
+        _print_top_for_type(et_salaries, pct, label)
+
+    if not any_data:
+        console.print("  [warn]No offers with salary data[/]")
+        return
+
     console.print()
     console.print("  [muted]Use /show <company> to see all offers for a given company[/]")
     console.print()
