@@ -15,10 +15,9 @@ import argparse
 import json
 import re
 import statistics
-import sys
 from collections import Counter
 
-PERCENTILES = [10, 25, 50, 70, 80, 90]
+PERCENTILES = [10, 25, 50, 60, 70, 80, 90, 95, 99]
 
 KEYWORDS_VACATION = [
     "urlop", "vacation", "paid leave", "paid time off", "pto",

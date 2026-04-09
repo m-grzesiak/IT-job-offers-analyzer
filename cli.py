@@ -2,35 +2,29 @@
 """
 IT Offers Analyzer — Interactive CLI
 =====================================
-Claude Code-style interactive interface for scraping and analyzing
-IT job offers from justjoin.it.
+Interactive interface for scraping and analyzing IT job offers from justjoin.it.
+Commands auto-fetch data when needed and cache results in session.
 """
 
 import os
-import sys
-import json
-import shlex
+import statistics
 import time
+from collections import Counter
 from types import SimpleNamespace
 
-from rich.console import Console
-from rich.panel import Panel
-from rich.table import Table
-from rich.text import Text
-from rich.columns import Columns
-from rich.progress import Progress, SpinnerColumn, TextColumn, BarColumn, MofNCompleteColumn
-from rich.theme import Theme
-from rich.style import Style
-from rich.markdown import Markdown
 from prompt_toolkit import PromptSession
-from prompt_toolkit.history import FileHistory
 from prompt_toolkit.auto_suggest import AutoSuggestFromHistory
 from prompt_toolkit.completion import Completer, Completion
 from prompt_toolkit.document import Document
+from prompt_toolkit.history import FileHistory
+from rich.console import Console
+from rich.panel import Panel
+from rich.progress import Progress, SpinnerColumn, TextColumn, BarColumn, MofNCompleteColumn
+from rich.table import Table
+from rich.theme import Theme
 
-import glob as globmod
-import scrapper
 import analyzer
+import scrapper
 
 # ─── Theme ────────────────────────────────────────────────────────────────────
 
@@ -51,14 +45,13 @@ console = Console(theme=THEME)
 
 state = {
     "offers": [],
-    "file": None,
     "city": None,
     "category": None,
     "experience": None,
     "has_details": False,
 }
 
-# ─── Helpers ──────────────────────────────────────────────────────────────────
+# ─── Constants ────────────────────────────────────────────────────────────────
 
 HISTORY_PATH = os.path.expanduser("~/.it-offers-analyzer-history")
 
@@ -69,41 +62,28 @@ CITIES = [
     "Gliwice", "Częstochowa",
 ]
 
-# Per-command completion stages: ordered from general to specific.
-# Each stage is (candidates, description, filter_used_flag).
-# filter_used_flag: if True, each candidate can only appear once.
+SCRAPE_STAGES = [
+    (CITIES, "city"),
+    (scrapper.CATEGORIES, "category"),
+    (scrapper.EXPERIENCE_LEVELS, "experience"),
+]
+
 COMMAND_STAGES = {
-    "/scrape": [
-        (CITIES, "city"),
-        (scrapper.CATEGORIES, "category"),
-        (scrapper.EXPERIENCE_LEVELS, "experience"),
-        (scrapper.WORKPLACE_TYPES, "workplace"),
-        (["--details"], "options"),
-    ],
-    "/analyze": [
-        (scrapper.EMPLOYMENT_TYPES, "employment type"),
-        (["-x"], "exclude outliers"),
-    ],
-    "/a": [
-        (scrapper.EMPLOYMENT_TYPES, "employment type"),
-        (["-x"], "exclude outliers"),
-    ],
-    "/top": [
-        (scrapper.EMPLOYMENT_TYPES, "employment type"),
-        (["-x"], "exclude outliers"),
-    ],
-    "/outliers": [
+    "/analyze": SCRAPE_STAGES + [
         (scrapper.EMPLOYMENT_TYPES, "employment type"),
     ],
-    "/benefits": [],
-    "/show": [],  # handled dynamically with company names
-    "/load": [],  # handled dynamically with file paths
-    "/save": [],  # handled dynamically with file paths
+    "/top": SCRAPE_STAGES + [
+        (scrapper.EMPLOYMENT_TYPES, "employment type"),
+        ([f">P{p}" for p in analyzer.PERCENTILES], "percentile threshold"),
+    ],
+    "/outliers": SCRAPE_STAGES + [
+        (scrapper.EMPLOYMENT_TYPES, "employment type"),
+    ],
+    "/benefits": SCRAPE_STAGES,
+    "/show": [],  # company names completed dynamically
     "/status": [],
     "/help": [],
-    "/h": [],
     "/quit": [],
-    "/q": [],
 }
 
 
@@ -136,12 +116,6 @@ class SmartCompleter(Completer):
             yield from self._complete_companies(query, text, parts)
             return
 
-        # /load, /save — complete with file paths
-        if cmd in ("/load", "/save"):
-            partial = parts[-1] if len(parts) > 1 and not text.endswith(" ") else ""
-            yield from self._complete_files(partial)
-            return
-
         # Staged completion for other commands
         stages = COMMAND_STAGES.get(cmd, [])
         if not stages:
@@ -150,11 +124,9 @@ class SmartCompleter(Completer):
         used = set(parts[1:]) if text.endswith(" ") else set(parts[1:-1])
         current_word = "" if text.endswith(" ") else (parts[-1] if len(parts) > 1 else "")
 
-        # Find the first stage that hasn't been satisfied yet
         for candidates, meta in stages:
             if any(u in candidates for u in used):
-                continue  # this stage is already filled
-            # Suggest from this stage
+                continue
             for c in candidates:
                 if c in used:
                     continue
@@ -164,7 +136,7 @@ class SmartCompleter(Completer):
                         start_position=-len(current_word),
                         display_meta=meta,
                     )
-            return  # only suggest one stage at a time
+            return
 
     def _complete_companies(self, query, text, parts):
         """Complete company names from loaded offers."""
@@ -172,7 +144,6 @@ class SmartCompleter(Completer):
             return
 
         seen = set()
-        # Build the partial text after "/show "
         if len(parts) > 1:
             partial = " ".join(parts[1:])
             if text.endswith(" "):
@@ -186,225 +157,91 @@ class SmartCompleter(Completer):
                 continue
             seen.add(name)
             if name.lower().startswith(partial.lower().strip()):
-                # Replace everything after "/show "
                 yield Completion(
                     name,
                     start_position=-len(partial.rstrip()),
                     display_meta="company",
                 )
 
-    def _complete_files(self, partial):
-        """Complete JSON file paths."""
-        pattern = (partial or "") + "*.json"
-        for path in sorted(globmod.glob(pattern)):
-            yield Completion(
-                path,
-                start_position=-len(partial),
-                display_meta="file",
-            )
-
 
 completer = SmartCompleter()
 
 
-def fmt_salary(val: float) -> str:
-    return f"{val:,.0f} PLN"
+# ─── Argument parsing & data management ──────────────────────────────────────
 
 
-def make_salary_table(salaries, exclude_outliers=False):
-    """Build a Rich table with salary analysis."""
-    clean, outliers = analyzer.detect_outliers(salaries)
-    active = clean if exclude_outliers else salaries
+def _parse_args(args_str):
+    """Parse mixed scrape filters + analysis flags from command arguments."""
+    parts = args_str.split() if args_str else []
 
-    midpoints = sorted([(lo + hi) / 2 for lo, hi, _ in active])
-    lows = sorted([lo for lo, _, _ in active])
-    highs = sorted([hi for _, hi, _ in active])
-
-    if not midpoints:
-        return None
-
-    import statistics
-    med_low = statistics.median(lows)
-    med_high = statistics.median(highs)
-    med_mid = statistics.median(midpoints)
-
-    # Summary table
-    table = Table(
-        title="Salary Analysis",
-        title_style="bold magenta",
-        show_header=False,
-        box=None,
-        padding=(0, 2),
-    )
-    table.add_column("key", style="dim")
-    table.add_column("value", style="bold white")
-
-    table.add_row("Offers with salary", str(len(salaries)))
-    if outliers:
-        label = f"{len(outliers)} (excluded)" if exclude_outliers else str(len(outliers))
-        table.add_row("Outliers", label)
-    table.add_row("", "")
-    table.add_row("Median — lower", fmt_salary(med_low))
-    table.add_row("Median — upper", fmt_salary(med_high))
-    table.add_row("Median — mid", fmt_salary(med_mid))
-
-    return table, midpoints, outliers
-
-
-def make_percentile_table(midpoints):
-    """Build a Rich table with percentile data."""
-    table = Table(
-        title="Percentiles (mid-range)",
-        title_style="bold magenta",
-        border_style="dim",
-    )
-    table.add_column("Percentile", justify="right", style="accent")
-    table.add_column("Amount", justify="right", style="salary")
-    table.add_column("Offers ≤", justify="right", style="muted")
-    table.add_column("", min_width=25)
-
-    max_val = max(midpoints)
-    for p in analyzer.PERCENTILES:
-        val = analyzer.percentile(midpoints, p)
-        count = sum(1 for m in midpoints if m <= val)
-        bar_ratio = val / max_val if max_val else 0
-        bar_len = int(bar_ratio * 20)
-        bar = "█" * bar_len + "░" * (20 - bar_len)
-        table.add_row(f"P{p}", fmt_salary(val), str(count), f"[cyan]{bar}[/]")
-
-    return table
-
-
-def make_distribution_table(midpoints):
-    """Build salary distribution table."""
-    p10 = analyzer.percentile(midpoints, 10)
-    p25 = analyzer.percentile(midpoints, 25)
-    p50 = analyzer.percentile(midpoints, 50)
-    p75 = analyzer.percentile(midpoints, 75)
-    p90 = analyzer.percentile(midpoints, 90)
-
-    brackets = [
-        (0, p10, "below P10"),
-        (p10, p25, "P10–P25"),
-        (p25, p50, "P25–P50"),
-        (p50, p75, "P50–P75"),
-        (p75, p90, "P75–P90"),
-        (p90, float("inf"), "> P90"),
-    ]
-
-    table = Table(
-        title="Salary Distribution",
-        title_style="bold magenta",
-        border_style="dim",
-    )
-    table.add_column("Bracket", justify="right", style="accent")
-    table.add_column("Range", justify="right")
-    table.add_column("Offers", justify="right", style="salary")
-    table.add_column("%", justify="right")
-    table.add_column("", min_width=25)
-
-    total = len(midpoints)
-    for lo, hi, label in brackets:
-        count = sum(1 for m in midpoints if lo < m <= hi) if lo > 0 else sum(1 for m in midpoints if m <= hi)
-        pct = count / total * 100 if total else 0
-        bar_len = int(pct / 100 * 25)
-        bar = "█" * bar_len
-
-        hi_str = fmt_salary(hi) if hi != float("inf") else "∞"
-        range_str = f"{fmt_salary(lo)} – {hi_str}"
-
-        color = "green" if pct > 20 else "cyan" if pct > 10 else "dim"
-        table.add_row(label, range_str, str(count), f"{pct:.1f}%", f"[{color}]{bar}[/]")
-
-    return table
-
-
-# ─── Commands ─────────────────────────────────────────────────────────────────
-
-def cmd_help():
-    """Show help."""
-    help_table = Table(show_header=False, box=None, padding=(0, 2))
-    help_table.add_column("cmd", style="bold cyan", min_width=30)
-    help_table.add_column("desc")
-
-    commands = [
-        ("/scrape <city> <category> [exp]", "Scrape offers from justjoin.it"),
-        ("/scrape --details", "above + full descriptions (for /benefits)"),
-        ("/load <file.json>", "Load offers from file"),
-        ("/save [file.json]", "Save offers to file"),
-        ("/analyze [--type b2b] [-x]", "Salary analysis"),
-        ("/top [--type b2b] [-x]", "Companies with offers > P90"),
-        ("/outliers [--type b2b]", "Show detected outliers"),
-        ("/benefits", "B2B benefits analysis"),
-        ("/show <company>", "Show offers for a company"),
-        ("/status", "Show current data status"),
-        ("/help", "Show this help"),
-        ("/quit", "Exit"),
-    ]
-
-    for cmd, desc in commands:
-        help_table.add_row(cmd, desc)
-
-    console.print()
-    console.print(Panel(help_table, title="[bold]Commands[/]", border_style="dim", padding=(1, 2)))
-    console.print()
-
-
-def cmd_status():
-    """Show current state."""
-    console.print()
-    if not state["offers"]:
-        console.print("  [muted]No offers loaded. Use /scrape or /load[/]")
-    else:
-        n = len(state["offers"])
-        has_salary = sum(1 for o in state["offers"]
-                         if any(et.get("salary_from") for et in o.get("employment_types", [])))
-        has_body = sum(1 for o in state["offers"] if o.get("body"))
-
-        info = Table(show_header=False, box=None, padding=(0, 2))
-        info.add_column("k", style="dim")
-        info.add_column("v", style="bold")
-        info.add_row("Offers", str(n))
-        info.add_row("With salary", str(has_salary))
-        info.add_row("With description", str(has_body))
-        if state["file"]:
-            info.add_row("File", state["file"])
-        if state["city"]:
-            info.add_row("City", state["city"])
-        if state["category"]:
-            info.add_row("Category", state["category"])
-        if state["experience"]:
-            info.add_row("Experience", state["experience"])
-
-        console.print(Panel(info, title="[bold]Status[/]", border_style="dim", padding=(1, 2)))
-    console.print()
-
-
-def cmd_scrape(args_str: str):
-    """Scrape offers from justjoin.it."""
-    parts = shlex.split(args_str) if args_str else []
-
-    # Parse args
     city = None
     category = None
     experience = None
-    fetch_details = "--details" in parts
-    parts = [p for p in parts if p != "--details"]
+    emp_type = None
+    rest = []
+
+    top_percentile = None
 
     for p in parts:
-        if p in scrapper.CATEGORIES:
+        if p.startswith(">P") and p[2:].isdigit():
+            top_percentile = int(p[2:])
+        elif p.startswith(">") and p[1:].isdigit():
+            top_percentile = int(p[1:])
+        elif p in scrapper.CATEGORIES:
             category = p
         elif p in scrapper.EXPERIENCE_LEVELS:
             experience = p
+        elif p in scrapper.EMPLOYMENT_TYPES:
+            emp_type = p
         elif not p.startswith("-"):
-            city = p
+            matched_city = next((c for c in CITIES if c.lower() == p.lower()), None)
+            if matched_city and city is None:
+                city = matched_city
+            else:
+                rest.append(p)
+
+    return SimpleNamespace(
+        city=city, category=category, experience=experience,
+        emp_type=emp_type, rest=" ".join(rest),
+        top_percentile=top_percentile,
+    )
+
+
+def _needs_scrape(args, need_details=False):
+    """Check if scraping is needed based on current cache vs requested filters."""
+    if not state["offers"]:
+        return True
+    if args.city and args.city != state["city"]:
+        return True
+    if args.category and args.category != state["category"]:
+        return True
+    if args.experience and args.experience != state["experience"]:
+        return True
+    if need_details and not state["has_details"]:
+        return True
+    return False
+
+
+def _ensure_data(args, need_details=False):
+    """Ensure offers are loaded, scraping if necessary."""
+    if not _needs_scrape(args, need_details):
+        return True
+
+    city = args.city or state["city"]
+    category = args.category or state["category"]
+    experience = args.experience or state["experience"]
 
     if not city:
-        console.print("  [error]Specify city: /scrape Kraków java senior[/]")
-        return
+        console.print("  [error]Specify city, e.g.: /analyze Kraków python senior b2b[/]")
+        return False
 
+    return _scrape(city, category, experience, need_details)
+
+
+def _scrape(city, category, experience, fetch_details):
+    """Scrape offers with progress. Returns True on success."""
     console.print()
-    console.print(f"  [accent]Scraping justjoin.it...[/]")
+    console.print("  [accent]Scraping justjoin.it...[/]")
     filters = [city]
     if category:
         filters.append(category)
@@ -413,29 +250,14 @@ def cmd_scrape(args_str: str):
     console.print(f"  [muted]Filters: {' / '.join(filters)}[/]")
     console.print()
 
-    scrape_args = SimpleNamespace(
-        city=city,
-        category=category,
-        experience=experience,
-        workplace=None,
-        employment=None,
-        working_time=None,
-        keyword=None,
-        with_salary=False,
-        limit=None,
-        fetch_details=fetch_details,
-    )
-
-    # Scrape with progress
     try:
         with Progress(
-            SpinnerColumn(),
-            TextColumn("[progress.description]{task.description}"),
-            BarColumn(),
-            MofNCompleteColumn(),
-            console=console,
+                SpinnerColumn(),
+                TextColumn("[progress.description]{task.description}"),
+                BarColumn(),
+                MofNCompleteColumn(),
+                console=console,
         ) as progress:
-            # Phase 1: list scrape
             task = progress.add_task("Fetching offers...", total=None)
 
             params = {
@@ -479,7 +301,6 @@ def cmd_scrape(args_str: str):
 
             progress.update(task, completed=len(all_offers))
 
-            # Phase 2: details
             if fetch_details:
                 detail_task = progress.add_task("Fetching descriptions...", total=len(all_offers))
                 results = []
@@ -501,89 +322,201 @@ def cmd_scrape(args_str: str):
         state["city"] = city
         state["category"] = category
         state["experience"] = experience
-        state["file"] = None
 
         console.print()
         console.print(f"  [success]Fetched {len(state['offers'])} offers[/]")
-        if fetch_details:
-            console.print(f"  [muted]Descriptions fetched — /benefits available[/]")
         console.print()
+        return True
 
     except Exception as e:
-        console.print(f"  [error]Error: {e}[/]")
+        console.print(f"  [error]Scraping error: {e}[/]")
+        return False
 
 
-def cmd_load(args_str: str):
-    """Load offers from JSON file."""
-    path = args_str.strip() if args_str else ""
-    if not path:
-        console.print("  [error]Specify path: /load offers.json[/]")
-        return
-
-    try:
-        with open(path, encoding="utf-8") as f:
-            state["offers"] = json.load(f)
-        state["file"] = path
-        state["has_details"] = any(o.get("body") for o in state["offers"])
-        console.print(f"  [success]Loaded {len(state['offers'])} offers from {path}[/]")
-    except Exception as e:
-        console.print(f"  [error]Error: {e}[/]")
+# ─── Display helpers ─────────────────────────────────────────────────────────
 
 
-def cmd_save(args_str: str):
-    """Save offers to JSON file."""
+def fmt_salary(val: float) -> str:
+    return f"{val:,.0f} PLN"
+
+
+def make_summary_table(salaries, total_offers):
+    """Build a Rich table with salary analysis summary."""
+    clean, outliers = analyzer.detect_outliers(salaries)
+    active = salaries
+
+    midpoints = sorted([(lo + hi) / 2 for lo, hi, _ in active])
+    lows = sorted([lo for lo, _, _ in active])
+    highs = sorted([hi for _, hi, _ in active])
+
+    if not midpoints:
+        return None
+
+    med_low = statistics.median(lows)
+    med_high = statistics.median(highs)
+    med_mid = statistics.median(midpoints)
+
+    table = Table(
+        show_header=False,
+        box=None,
+        padding=(0, 2),
+    )
+    table.add_column("key", style="dim")
+    table.add_column("value", style="bold white")
+
+    no_salary = total_offers - len(salaries)
+    outlier_label = str(len(outliers))
+
+    table.add_row("Total offers", str(total_offers))
+    table.add_row("With salary", str(len(salaries)))
+    table.add_row("Without salary", str(no_salary))
+    table.add_row("Outliers", outlier_label)
+    table.add_row("", "")
+    table.add_row("Median — lower", fmt_salary(med_low))
+    table.add_row("Median — upper", fmt_salary(med_high))
+    table.add_row("Median — mid", fmt_salary(med_mid))
+
+    return table, midpoints, outliers
+
+
+def make_percentile_table(midpoints):
+    """Build a Rich table with percentile data."""
+    table = Table(
+        title="Percentiles (mid-range)",
+        title_style="bold magenta",
+        border_style="dim",
+    )
+    table.add_column("Percentile", justify="right", style="accent")
+    table.add_column("Amount", justify="right", style="salary")
+    table.add_column("Offers ≤", justify="right", style="muted")
+    table.add_column("", min_width=25)
+
+    max_val = max(midpoints)
+    for p in analyzer.PERCENTILES:
+        val = analyzer.percentile(midpoints, p)
+        count = sum(1 for m in midpoints if m <= val)
+        bar_ratio = val / max_val if max_val else 0
+        bar_len = int(bar_ratio * 20)
+        bar = "█" * bar_len + "░" * (20 - bar_len)
+        table.add_row(f"P{p}", fmt_salary(val), str(count), f"[cyan]{bar}[/]")
+
+    return table
+
+
+def make_distribution_table(midpoints):
+    """Build salary distribution table."""
+    pvals = [analyzer.percentile(midpoints, p) for p in analyzer.PERCENTILES]
+
+    brackets = [(0, pvals[0], f"< P{analyzer.PERCENTILES[0]}")]
+    for i in range(1, len(pvals)):
+        brackets.append((pvals[i - 1], pvals[i], f"P{analyzer.PERCENTILES[i - 1]}–P{analyzer.PERCENTILES[i]}"))
+    brackets.append((pvals[-1], float("inf"), f"> P{analyzer.PERCENTILES[-1]}"))
+
+    table = Table(
+        title="Salary Distribution",
+        title_style="bold magenta",
+        border_style="dim",
+    )
+    table.add_column("Bracket", justify="right", style="accent")
+    table.add_column("Range", justify="right")
+    table.add_column("Offers", justify="right", style="salary")
+    table.add_column("%", justify="right")
+    table.add_column("", min_width=25)
+
+    total = len(midpoints)
+    for lo, hi, label in brackets:
+        count = sum(1 for m in midpoints if lo < m <= hi) if lo > 0 else sum(1 for m in midpoints if m <= hi)
+        pct = count / total * 100 if total else 0
+        bar_len = int(pct / 100 * 25)
+        bar = "█" * bar_len
+
+        hi_str = fmt_salary(hi) if hi != float("inf") else "∞"
+        range_str = f"{fmt_salary(lo)} – {hi_str}"
+
+        color = "green" if pct > 20 else "cyan" if pct > 10 else "dim"
+        table.add_row(label, range_str, str(count), f"{pct:.1f}%", f"[{color}]{bar}[/]")
+
+    return table
+
+
+# ─── Commands ────────────────────────────────────────────────────────────────
+
+def cmd_help():
+    """Show help."""
+    help_table = Table(show_header=False, box=None, padding=(0, 2))
+    help_table.add_column("cmd", style="bold cyan", min_width=38)
+    help_table.add_column("desc")
+
+    commands = [
+        ("/analyze [city] [cat] [exp] [type]", "Salary analysis"),
+        ("/top [city] [cat] [exp] [type] [>P75]", "Companies above percentile (default >P90)"),
+        ("/outliers [city] [cat] [exp] [type]", "Show detected outliers"),
+        ("/benefits [city] [cat] [exp]", "B2B benefits (auto-fetches details)"),
+        ("/show <company>", "Show offers for a company"),
+        ("/status", "Current data status"),
+        ("/help", "Show this help"),
+        ("/quit", "Exit"),
+    ]
+
+    for cmd, desc in commands:
+        help_table.add_row(cmd, desc)
+
+    console.print()
+    console.print(Panel(help_table, title="[bold]Commands[/]", border_style="dim", padding=(1, 2)))
+    console.print()
+
+
+def cmd_status():
+    """Show current state."""
+    console.print()
     if not state["offers"]:
-        console.print("  [error]No offers to save[/]")
-        return
+        console.print("  [muted]No offers loaded. Run a command like /analyze Kraków python senior[/]")
+    else:
+        n = len(state["offers"])
+        has_salary = sum(1 for o in state["offers"]
+                         if any(et.get("salary_from") for et in o.get("employment_types", [])))
+        has_body = sum(1 for o in state["offers"] if o.get("body"))
 
-    path = args_str.strip() if args_str else "offers.json"
-    try:
-        with open(path, "w", encoding="utf-8") as f:
-            json.dump(state["offers"], f, indent=2, ensure_ascii=False)
-        state["file"] = path
-        console.print(f"  [success]Saved {len(state['offers'])} offers to {path}[/]")
-    except Exception as e:
-        console.print(f"  [error]Error: {e}[/]")
+        info = Table(show_header=False, box=None, padding=(0, 2))
+        info.add_column("k", style="dim")
+        info.add_column("v", style="bold")
+        info.add_row("Offers", str(n))
+        info.add_row("With salary", str(has_salary))
+        info.add_row("With description", str(has_body))
+        if state["city"]:
+            info.add_row("City", state["city"])
+        if state["category"]:
+            info.add_row("Category", state["category"])
+        if state["experience"]:
+            info.add_row("Experience", state["experience"])
 
-
-def _parse_analyze_flags(args_str: str):
-    """Parse common flags for analyze commands."""
-    parts = shlex.split(args_str) if args_str else []
-    emp_type = None
-    exclude = "-x" in parts or "--exclude-outliers" in parts
-
-    for i, p in enumerate(parts):
-        if p in ("--type", "-t") and i + 1 < len(parts):
-            emp_type = parts[i + 1]
-        elif p in scrapper.EMPLOYMENT_TYPES:
-            emp_type = p
-
-    return emp_type, exclude
+        console.print(Panel(info, title="[bold]Status[/]", border_style="dim", padding=(1, 2)))
+    console.print()
 
 
 def cmd_analyze(args_str: str):
     """Salary analysis."""
-    if not state["offers"]:
-        console.print("  [error]No offers. Use /scrape or /load[/]")
+    args = _parse_args(args_str)
+    if not _ensure_data(args):
         return
 
-    emp_type, exclude = _parse_analyze_flags(args_str)
-    salaries = analyzer.extract_salaries(state["offers"], emp_type)
+    salaries = analyzer.extract_salaries(state["offers"], args.emp_type)
 
     if not salaries:
         console.print("  [warn]No offers with salary data[/]")
         return
 
-    result = make_salary_table(salaries, exclude)
+    total_offers = len(state["offers"])
+    result = make_summary_table(salaries, total_offers)
     if not result:
         return
     summary_table, midpoints, outliers = result
 
-    label = emp_type.upper() if emp_type else "all types"
+    label = args.emp_type.upper() if args.emp_type else "all types"
     console.print()
     console.print(Panel(
         summary_table,
-        title=f"[bold]{label}[/] — {len(state['offers'])} offers",
+        title=f"[bold]Summary — {label}[/]",
         border_style="magenta",
         padding=(1, 2),
     ))
@@ -597,35 +530,32 @@ def cmd_analyze(args_str: str):
 
 def cmd_top(args_str: str):
     """Show companies above P90."""
-    if not state["offers"]:
-        console.print("  [error]No offers. Use /scrape or /load[/]")
+    args = _parse_args(args_str)
+    if not _ensure_data(args):
         return
 
-    emp_type, exclude = _parse_analyze_flags(args_str)
-    salaries = analyzer.extract_salaries(state["offers"], emp_type)
-    clean, outliers = analyzer.detect_outliers(salaries)
-    active = clean if exclude else salaries
+    salaries = analyzer.extract_salaries(state["offers"], args.emp_type)
+    active = salaries
 
     midpoints = sorted([(lo + hi) / 2 for lo, hi, _ in active])
     if len(midpoints) < 10:
         console.print("  [warn]Not enough data[/]")
         return
 
-    p90 = analyzer.percentile(midpoints, 90)
+    pct = args.top_percentile or 90
+    threshold = analyzer.percentile(midpoints, pct)
 
-    above = [(lo, hi, o) for lo, hi, o in active if (lo + hi) / 2 > p90]
+    above = [(lo, hi, o) for lo, hi, o in active if (lo + hi) / 2 > threshold]
     above.sort(key=lambda x: (x[0] + x[1]) / 2, reverse=True)
 
     if not above:
-        console.print("  [muted]No offers > P90[/]")
+        console.print(f"  [muted]No offers > P{pct}[/]")
         return
 
-    # Companies summary
-    from collections import Counter
     company_counts = Counter(o["company_name"] for _, _, o in above)
 
     summary = Table(
-        title=f"Companies > P90 ({fmt_salary(p90)})",
+        title=f"Companies > P{pct} ({fmt_salary(threshold)})",
         title_style="bold magenta",
         border_style="dim",
     )
@@ -641,9 +571,8 @@ def cmd_top(args_str: str):
     console.print()
     console.print(summary)
 
-    # Detail table
     detail = Table(
-        title="Offer details > P90",
+        title=f"Offer details > P{pct}",
         title_style="bold magenta",
         border_style="dim",
     )
@@ -656,21 +585,22 @@ def cmd_top(args_str: str):
     for lo, hi, offer in above:
         mid = (lo + hi) / 2
         detail.add_row(fmt_salary(mid), fmt_salary(lo), fmt_salary(hi),
-                        offer["company_name"], offer["title"])
+                       offer["company_name"], offer["title"])
 
     console.print()
     console.print(detail)
+    console.print()
+    console.print("  [muted]Use /show <company> to see all offers for a given company[/]")
     console.print()
 
 
 def cmd_outliers(args_str: str):
     """Show detected outliers."""
-    if not state["offers"]:
-        console.print("  [error]No offers[/]")
+    args = _parse_args(args_str)
+    if not _ensure_data(args):
         return
 
-    emp_type, _ = _parse_analyze_flags(args_str)
-    salaries = analyzer.extract_salaries(state["offers"], emp_type)
+    salaries = analyzer.extract_salaries(state["offers"], args.emp_type)
     _, outliers = analyzer.detect_outliers(salaries)
 
     if not outliers:
@@ -688,10 +618,10 @@ def cmd_outliers(args_str: str):
     table.add_column("Company", style="bold")
     table.add_column("Title", style="dim")
 
-    for lo, hi, offer in sorted(outliers, key=lambda x: (x[0]+x[1])/2, reverse=True):
+    for lo, hi, offer in sorted(outliers, key=lambda x: (x[0] + x[1]) / 2, reverse=True):
         mid = (lo + hi) / 2
         table.add_row(fmt_salary(mid), fmt_salary(lo), fmt_salary(hi),
-                        offer["company_name"], offer["title"])
+                      offer["company_name"], offer["title"])
 
     console.print()
     console.print(table)
@@ -700,12 +630,8 @@ def cmd_outliers(args_str: str):
 
 def cmd_benefits(args_str: str):
     """Analyze B2B benefits."""
-    if not state["offers"]:
-        console.print("  [error]No offers[/]")
-        return
-
-    if not state["has_details"]:
-        console.print("  [warn]No offer descriptions. Use /scrape <city> <cat> --details[/]")
+    args = _parse_args(args_str)
+    if not _ensure_data(args, need_details=True):
         return
 
     b2b_with_body = [
@@ -734,9 +660,8 @@ def cmd_benefits(args_str: str):
             with_any.append((offer, vac, sick, extra))
 
     total = len(b2b_with_body)
-    pct = lambda n: f"{n}/{total} ({n/total*100:.1f}%)"
+    pct = lambda n: f"{n}/{total} ({n / total * 100:.1f}%)"
 
-    # Summary
     summary = Table(show_header=False, box=None, padding=(0, 2))
     summary.add_column("k", style="dim")
     summary.add_column("v", style="bold")
@@ -778,7 +703,7 @@ def cmd_benefits(args_str: str):
 def cmd_show(args_str: str):
     """Show offers from a specific company."""
     if not state["offers"]:
-        console.print("  [error]No offers[/]")
+        console.print("  [error]No data. Run a command first, e.g.: /analyze Kraków python senior[/]")
         return
 
     query = args_str.strip().lower() if args_str else ""
@@ -834,19 +759,13 @@ def cmd_show(args_str: str):
 
 COMMANDS = {
     "/help": (cmd_help, ""),
-    "/h": (cmd_help, ""),
     "/status": (cmd_status, ""),
-    "/scrape": (cmd_scrape, "args"),
-    "/load": (cmd_load, "args"),
-    "/save": (cmd_save, "args"),
     "/analyze": (cmd_analyze, "args"),
-    "/a": (cmd_analyze, "args"),
     "/top": (cmd_top, "args"),
     "/outliers": (cmd_outliers, "args"),
     "/benefits": (cmd_benefits, "args"),
     "/show": (cmd_show, "args"),
     "/quit": (None, ""),
-    "/q": (None, ""),
 }
 
 
@@ -864,7 +783,7 @@ def dispatch(user_input: str):
     cmd = parts[0].lower()
     args_str = parts[1] if len(parts) > 1 else ""
 
-    if cmd in ("/quit", "/q"):
+    if cmd == "/quit":
         return False
 
     if cmd in COMMANDS:
@@ -881,10 +800,8 @@ def dispatch(user_input: str):
 # ─── Main ─────────────────────────────────────────────────────────────────────
 
 BANNER = """[bold magenta]
-  ╦╔╦╗  ╔═╗╔═╗╔═╗╔═╗╦═╗╔═╗
-  ║ ║   ║ ║╠╣ ╠╣ ║╣ ╠╦╝╚═╗
-  ╩ ╩   ╚═╝╚  ╚  ╚═╝╩╚═╚═╝[/]
-  [dim]analyzer v1.0 — justjoin.it[/]
+  IT Job Offers Analyzer[/]
+  [dim]v0.1[/]
 """
 
 
