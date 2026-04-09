@@ -141,6 +141,15 @@ class CancellableProgress(Progress):
 
 # ─── Constants ────────────────────────────────────────────────────────────────
 
+CMD_ANALYZE  = "/analyze"
+CMD_TOP      = "/top"
+CMD_OUTLIERS = "/outliers"
+CMD_BENEFITS = "/benefits"
+CMD_SHOW     = "/show"
+CMD_STATUS   = "/status"
+CMD_HELP     = "/help"
+CMD_QUIT     = "/quit"
+
 HISTORY_PATH = os.path.expanduser("~/.it-offers-analyzer-history")
 
 CITIES = [
@@ -157,26 +166,37 @@ BASE_STAGES = [
 ]
 
 COMMAND_STAGES = {
-    "/analyze": BASE_STAGES + [
+    CMD_ANALYZE: BASE_STAGES + [
         (scrapper.EMPLOYMENT_TYPES, "employment type"),
         (scrapper.WORKPLACE_TYPES, "workplace"),
     ],
-    "/top": BASE_STAGES + [
+    CMD_TOP: BASE_STAGES + [
         (scrapper.EMPLOYMENT_TYPES, "employment type"),
         (scrapper.WORKPLACE_TYPES, "workplace"),
         ([f">P{p}" for p in analyzer.PERCENTILES], "percentile threshold"),
     ],
-    "/outliers": BASE_STAGES + [
+    CMD_OUTLIERS: BASE_STAGES + [
         (scrapper.EMPLOYMENT_TYPES, "employment type"),
         (scrapper.WORKPLACE_TYPES, "workplace"),
     ],
-    "/benefits": BASE_STAGES + [
+    CMD_BENEFITS: BASE_STAGES + [
         (scrapper.WORKPLACE_TYPES, "workplace"),
     ],
-    "/show": [],  # company names completed dynamically
-    "/status": [],
-    "/help": [],
-    "/quit": [],
+    CMD_SHOW:    [],  # company names completed dynamically
+    CMD_STATUS:  [],
+    CMD_HELP:    [],
+    CMD_QUIT:    [],
+}
+
+COMMAND_DESCRIPTIONS = {
+    CMD_ANALYZE:  "salary analysis with filters",
+    CMD_TOP:      "top companies by median salary",
+    CMD_OUTLIERS: "offers outside the normal range",
+    CMD_BENEFITS: "B2B benefits in offer descriptions",
+    CMD_SHOW:     "offer details for a company",
+    CMD_STATUS:   "summary of loaded data",
+    CMD_HELP:     "list available commands",
+    CMD_QUIT:     "exit the program",
 }
 
 
@@ -195,14 +215,14 @@ class SmartCompleter(Completer):
                     yield Completion(
                         cmd,
                         start_position=-len(prefix),
-                        display_meta="command",
+                        display_meta=COMMAND_DESCRIPTIONS.get(cmd, ""),
                     )
             return
 
         cmd = parts[0].lower()
 
         # /show — complete with company names from loaded data
-        if cmd == "/show":
+        if cmd == CMD_SHOW:
             query = " ".join(parts[1:]) if text.endswith(" ") or len(parts) > 1 else ""
             if not text.endswith(" ") and len(parts) > 1:
                 query = " ".join(parts[1:])
@@ -548,18 +568,18 @@ def cmd_help():
     help_table.add_column("desc")
 
     commands = [
-        ("/analyze [city] [cat] [exp] [workplace] [type]", "Salary analysis"),
-        ("/top [city] [cat] [exp] [workplace] [type] [>P75]", "Companies above percentile (default >P90)"),
-        ("/outliers [city] [cat] [exp] [workplace] [type]", "Show detected outliers"),
-        ("/benefits [city] [cat] [exp] [workplace]", "B2B benefits (auto-fetches details)"),
-        ("/show <company>", "Show offers for a company"),
-        ("/status", "Current data status"),
-        ("/help", "Show this help"),
-        ("/quit", "Exit"),
+        (f"{CMD_ANALYZE} [city] [cat] [exp] [workplace] [type]",    CMD_ANALYZE),
+        (f"{CMD_TOP} [city] [cat] [exp] [workplace] [type] [>P75]", CMD_TOP),
+        (f"{CMD_OUTLIERS} [city] [cat] [exp] [workplace] [type]",   CMD_OUTLIERS),
+        (f"{CMD_BENEFITS} [city] [cat] [exp] [workplace]",          CMD_BENEFITS),
+        (f"{CMD_SHOW} <company>",                                    CMD_SHOW),
+        (CMD_STATUS,                                                 CMD_STATUS),
+        (CMD_HELP,                                                   CMD_HELP),
+        (CMD_QUIT,                                                   CMD_QUIT),
     ]
 
-    for cmd, desc in commands:
-        help_table.add_row(cmd, desc)
+    for syntax, cmd in commands:
+        help_table.add_row(syntax, COMMAND_DESCRIPTIONS[cmd])
 
     console.print()
     console.print(Panel(help_table, title="[bold]Commands[/]", border_style="dim", padding=(1, 2)))
@@ -866,14 +886,14 @@ def cmd_show(args_str: str):
 # ─── Command router ──────────────────────────────────────────────────────────
 
 COMMANDS = {
-    "/help": (cmd_help, ""),
-    "/status": (cmd_status, ""),
-    "/analyze": (cmd_analyze, "args"),
-    "/top": (cmd_top, "args"),
-    "/outliers": (cmd_outliers, "args"),
-    "/benefits": (cmd_benefits, "args"),
-    "/show": (cmd_show, "args"),
-    "/quit": (None, ""),
+    CMD_HELP:     (cmd_help, ""),
+    CMD_STATUS:   (cmd_status, ""),
+    CMD_ANALYZE:  (cmd_analyze, "args"),
+    CMD_TOP:      (cmd_top, "args"),
+    CMD_OUTLIERS: (cmd_outliers, "args"),
+    CMD_BENEFITS: (cmd_benefits, "args"),
+    CMD_SHOW:     (cmd_show, "args"),
+    CMD_QUIT:     (None, ""),
 }
 
 
@@ -891,7 +911,7 @@ def dispatch(user_input: str):
     cmd = parts[0].lower()
     args_str = parts[1] if len(parts) > 1 else ""
 
-    if cmd == "/quit":
+    if cmd == CMD_QUIT:
         return False
 
     if cmd in COMMANDS:
@@ -944,10 +964,8 @@ def _show_welcome():
     quick.add_column("cmd", style="bold cyan", min_width=16)
     quick.add_column("desc", style="dim")
 
-    quick.add_row("/analyze", "Salary analysis")
-    quick.add_row("/top", "Top-paying companies")
-    quick.add_row("/benefits", "B2B benefits breakdown")
-    quick.add_row("/help", "All commands & options")
+    for cmd in (CMD_ANALYZE, CMD_TOP, CMD_BENEFITS, CMD_HELP):
+        quick.add_row(cmd, COMMAND_DESCRIPTIONS[cmd])
 
     console.print(Panel(
         quick,
