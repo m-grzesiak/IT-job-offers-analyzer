@@ -868,31 +868,29 @@ def cmd_show(args_str: str):
     table.add_column("Level", style="accent")
     table.add_column("City")
     table.add_column("Workplace")
-    table.add_column("From", justify="right")
-    table.add_column("To", justify="right", style="salary")
+    table.add_column("From (PLN)", justify="right")
+    table.add_column("To (PLN)", justify="right", style="salary")
     table.add_column("Type")
-    table.add_column("Currency")
 
     for o in matches:
-        has_salary = False
-        for et in o.get("employment_types", []):
-            sfrom = et.get("salary_from")
-            sto = et.get("salary_to")
-            et_type = et.get("type", "") or ""
-            currency = (et.get("currency", "") or "").upper()
-            if sfrom is not None:
+        ets = o.get("employment_types", [])
+        pln_by_type = {
+            et.get("type"): et for et in ets
+            if (et.get("currency") or "").upper() == "PLN" and et.get("salary_from") is not None
+        }
+        if pln_by_type:
+            for et_type, et in pln_by_type.items():
                 table.add_row(
                     o["title"], o.get("experience_level", ""),
                     o.get("city", ""), o.get("workplace_type", ""),
-                    f"{sfrom:,.0f}", f"{sto:,.0f}", et_type, currency,
+                    f"{et['salary_from']:,.0f}", f"{et['salary_to']:,.0f}", et_type or "",
                 )
-                has_salary = True
-        if not has_salary:
-            types = "/".join(dict.fromkeys(filter(None, (et.get("type") for et in o.get("employment_types", [])))))
+        else:
+            types = "/".join(dict.fromkeys(filter(None, (et.get("type") for et in ets))))
             table.add_row(
                 o["title"], o.get("experience_level", ""),
                 o.get("city", ""), o.get("workplace_type", ""),
-                "[dim]-[/]", "[dim]-[/]", f"[dim]{types or '-'}[/]", "[dim]-[/]",
+                "[dim]-[/]", "[dim]-[/]", f"[dim]{types or '-'}[/]",
             )
 
     console.print()

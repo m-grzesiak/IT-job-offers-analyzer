@@ -60,17 +60,19 @@ def extract_salaries(offers: list[dict], employment_type: str | None = None) -> 
     """Extract (salary_from, salary_to, offer) tuples normalized to monthly PLN."""
     salaries = []
     for offer in offers:
-        for et in offer.get("employment_types", []):
-            if employment_type and et.get("type") != employment_type:
-                continue
-            sfrom = et.get("salary_from")
-            sto = et.get("salary_to")
-            if sfrom is None or sto is None:
-                continue
-            low = normalize_monthly(sfrom)
-            high = normalize_monthly(sto)
-            salaries.append((low, high, offer))
-            break  # one match per offer is enough
+        candidates = [
+            et for et in offer.get("employment_types", [])
+            if (not employment_type or et.get("type") == employment_type)
+            and et.get("salary_from") is not None
+            and et.get("salary_to") is not None
+        ]
+        if not candidates:
+            continue
+        # Prefer PLN entry; the API returns all currencies but order is not guaranteed
+        et = next((e for e in candidates if (e.get("currency") or "").upper() == "PLN"), candidates[0])
+        low = normalize_monthly(et["salary_from"])
+        high = normalize_monthly(et["salary_to"])
+        salaries.append((low, high, offer))
     return salaries
 
 
