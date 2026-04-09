@@ -871,26 +871,28 @@ def cmd_show(args_str: str):
     table.add_column("From", justify="right")
     table.add_column("To", justify="right", style="salary")
     table.add_column("Type")
+    table.add_column("Currency")
 
     for o in matches:
         has_salary = False
         for et in o.get("employment_types", []):
             sfrom = et.get("salary_from")
             sto = et.get("salary_to")
+            et_type = et.get("type", "") or ""
+            currency = (et.get("currency", "") or "").upper()
             if sfrom is not None:
-                lo = analyzer.normalize_monthly(sfrom)
-                hi = analyzer.normalize_monthly(sto)
                 table.add_row(
                     o["title"], o.get("experience_level", ""),
                     o.get("city", ""), o.get("workplace_type", ""),
-                    fmt_salary(lo), fmt_salary(hi), et.get("type", ""),
+                    f"{sfrom:,.0f}", f"{sto:,.0f}", et_type, currency,
                 )
                 has_salary = True
         if not has_salary:
+            types = "/".join(dict.fromkeys(filter(None, (et.get("type") for et in o.get("employment_types", [])))))
             table.add_row(
                 o["title"], o.get("experience_level", ""),
                 o.get("city", ""), o.get("workplace_type", ""),
-                "[dim]-[/]", "[dim]-[/]", "",
+                "[dim]-[/]", "[dim]-[/]", f"[dim]{types or '-'}[/]", "[dim]-[/]",
             )
 
     console.print()
