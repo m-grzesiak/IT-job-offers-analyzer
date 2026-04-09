@@ -915,19 +915,58 @@ def dispatch(user_input: str):
 
 # ─── Main ─────────────────────────────────────────────────────────────────────
 
-BANNER = """[bold magenta]
-  IT Job Offers Analyzer[/]
-  [dim]v0.1[/]
-"""
+BANNER = (
+    "\n"
+    "[bold magenta]"
+    r"        __________   ____  ______________________  _____" "\n"
+    r"       /  _/_  __/  / __ \/ ____/ ____/ ____/ __ \/ ___/" "\n"
+    r"       / /  / /    / / / / /_  / /_  / __/ / /_/ /\__ \ " "\n"
+    r"     _/ /  / /    / /_/ / __/ / __/ / /___/ _, _/___/ / " "\n"
+    r"    /___/ /_/     \____/_/   /_/   /_____/_/ |_|/____/  " "\n"
+    "[/]"
+    "[bold cyan]"
+    r"        ___    _   _____    ____  _______   __________ " "\n"
+    r"       /   |  / | / /   |  / /\ \/ /__  /  / ____/ __ " "\\\n"
+    r"      / /| | /  |/ / /| | / /  \  /  / /  / __/ / /_/ /" "\n"
+    r"     / ___ |/ /|  / ___ |/ /___/ /  / /__/ /___/ _, _/ " "\n"
+    r"    /_/  |_/_/ |_/_/  |_/_____/_/  /____/_____/_/ |_|  " "\n"
+    "[/]"
+    "[dim]    ───────────────────────────────────────────────────[/]\n"
+    "[dim]    justjoin.it  ·  salary explorer  ·  v0.1[/]\n"
+)
+
+
+def _show_welcome():
+    """Show welcome screen with quick-start commands."""
+    console.print(BANNER, highlight=False)
+
+    quick = Table(show_header=False, box=None, padding=(0, 2))
+    quick.add_column("cmd", style="bold cyan", min_width=16)
+    quick.add_column("desc", style="dim")
+
+    quick.add_row("/analyze", "Salary analysis")
+    quick.add_row("/top", "Top-paying companies")
+    quick.add_row("/benefits", "B2B benefits breakdown")
+    quick.add_row("/help", "All commands & options")
+
+    console.print(Panel(
+        quick,
+        title="[bold]Quick start[/]",
+        subtitle="[dim]Tab for auto-complete · ESC to cancel[/]",
+        border_style="dim",
+        padding=(1, 2),
+        width=56,
+    ))
+    console.print()
+    console.print("  [muted]Try:[/] [accent]/analyze Kraków python senior b2b[/]")
+    console.print()
 
 
 def main():
     from prompt_toolkit.styles import Style as PTStyle
     prompt_style = PTStyle.from_dict({"prompt": "ansicyan bold"})
 
-    console.print(BANNER)
-    console.print("  [muted]Type[/] [accent]/help[/] [muted]to see commands[/]")
-    console.print()
+    _show_welcome()
 
     session = PromptSession(
         history=FileHistory(HISTORY_PATH),
