@@ -37,6 +37,11 @@ KEYWORDS_EXTRA_BENEFITS = [
 ]
 
 
+def midpoint(lo: float, hi: float) -> float:
+    """Calculate the midpoint of a salary range."""
+    return (lo + hi) / 2
+
+
 def normalize_monthly(salary: float) -> float:
     """Convert salary to monthly equivalent based on magnitude heuristic.
 
@@ -84,7 +89,7 @@ def detect_outliers(salaries: list[tuple[float, float, dict]]) -> tuple[list[tup
     if len(salaries) < 4:
         return salaries, []
 
-    midpoints = sorted((low + high) / 2 for low, high, _ in salaries)
+    midpoints = sorted(midpoint(low, high) for low, high, _ in salaries)
     q1 = percentile(midpoints, 25)
     q3 = percentile(midpoints, 75)
     iqr = q3 - q1
@@ -93,7 +98,7 @@ def detect_outliers(salaries: list[tuple[float, float, dict]]) -> tuple[list[tup
 
     clean, outliers = [], []
     for low, high, offer in salaries:
-        mid = (low + high) / 2
+        mid = midpoint(low, high)
         if mid < lower_bound or mid > upper_bound:
             outliers.append((low, high, offer))
         else:
@@ -124,17 +129,17 @@ def print_outliers(outliers: list[tuple[float, float, dict]]):
     print(f"\n  ⚠ Detected outliers ({len(outliers)}):")
     print(f"  {'Mid':>10}  {'From':>10}  {'To':>10}  {'Company':<30}  Title")
     print(f"  {'-' * 10}  {'-' * 10}  {'-' * 10}  {'-' * 30}  {'-' * 30}")
-    for low, high, offer in sorted(outliers, key=lambda x: (x[0]+x[1])/2, reverse=True):
-        mid = (low + high) / 2
+    for low, high, offer in sorted(outliers, key=lambda x: midpoint(x[0], x[1]), reverse=True):
+        mid = midpoint(low, high)
         print(f"  {fmt(mid):>10}  {fmt(low):>10}  {fmt(high):>10}  {offer['company_name']:<30}  {offer['title']}")
 
 
 def print_top_companies(salaries: list[tuple[float, float, dict]], p90_val: float):
     """Print offers above P90 grouped by company."""
-    above = [(low, high, offer) for low, high, offer in salaries if (low + high) / 2 > p90_val]
+    above = [(low, high, offer) for low, high, offer in salaries if midpoint(low, high) > p90_val]
     if not above:
         return
-    above.sort(key=lambda x: (x[0] + x[1]) / 2, reverse=True)
+    above.sort(key=lambda x: midpoint(x[0], x[1]), reverse=True)
 
     # Count per company
     company_counts = Counter(o["company_name"] for _, _, o in above)
@@ -143,14 +148,14 @@ def print_top_companies(salaries: list[tuple[float, float, dict]], p90_val: floa
     print(f"  {'Company':<35}  {'Offers':>6}  {'Min mid':>12}  {'Max mid':>12}")
     print(f"  {'-' * 35}  {'-' * 6}  {'-' * 12}  {'-' * 12}")
     for company, count in company_counts.most_common():
-        mids = [(low + high) / 2 for low, high, o in above if o["company_name"] == company]
+        mids = [midpoint(low, high) for low, high, o in above if o["company_name"] == company]
         print(f"  {company:<35}  {count:>6}  {fmt(min(mids)):>12}  {fmt(max(mids)):>12}")
 
     print(f"\n  Offer details > P90:")
     print(f"  {'Mid':>10}  {'From':>10}  {'To':>10}  {'Company':<30}  Title")
     print(f"  {'-' * 10}  {'-' * 10}  {'-' * 10}  {'-' * 30}  {'-' * 30}")
     for low, high, offer in above:
-        mid = (low + high) / 2
+        mid = midpoint(low, high)
         print(f"  {fmt(mid):>10}  {fmt(low):>10}  {fmt(high):>10}  {offer['company_name']:<30}  {offer['title']}")
 
 
@@ -163,7 +168,7 @@ def print_report(salaries: list[tuple[float, float, dict]], employment_type: str
     clean, outliers = detect_outliers(salaries)
     active = clean if exclude_outliers else salaries
 
-    midpoints = sorted([(low + high) / 2 for low, high, _ in active])
+    midpoints = sorted([midpoint(low, high) for low, high, _ in active])
     lows = sorted([low for low, _, _ in active])
     highs = sorted([high for _, high, _ in active])
 

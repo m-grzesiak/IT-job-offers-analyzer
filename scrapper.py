@@ -114,33 +114,71 @@ def transform_offer(raw: dict, body: str | None = None) -> dict:
     return result
 
 
-def scrape(args) -> list[dict]:
-    """Main scraping logic with pagination."""
+def build_params(city=None, category=None, experience=None, workplace=None,
+                 employment=None, working_time=None, keyword=None, with_salary=False):
+    """Build API query parameters from filters."""
     params = {
         "itemsCount": PAGE_SIZE,
         "sortBy": "publishedAt",
         "orderBy": "descending",
     }
-
-    if args.city:
-        params["city"] = args.city
-    if args.category:
-        params["categories"] = args.category
-    if args.experience:
-        params["experienceLevels"] = args.experience
-    if args.workplace:
-        params["workplaceType"] = args.workplace
-    if args.employment:
-        params["employmentTypes"] = args.employment
-    if args.working_time:
-        params["workingTimes"] = args.working_time
-    if args.keyword:
-        params["keyword"] = args.keyword
-    if args.with_salary:
+    if city:
+        params["city"] = city
+    if category:
+        params["categories"] = category
+    if experience:
+        params["experienceLevels"] = experience
+    if workplace:
+        params["workplaceType"] = workplace
+    if employment:
+        params["employmentTypes"] = employment
+    if working_time:
+        params["workingTimes"] = working_time
+    if keyword:
+        params["keyword"] = keyword
+    if with_salary:
         params["withSalary"] = "true"
+    return params
+
+
+def iter_pages(params):
+    """Yield (batch, total, is_last) for each page of offers.
+
+    Each batch is a list of (slug, transformed_offer) tuples.
+    Caller is responsible for rate-limiting between pages.
+    """
+    cursor = 0
+    while True:
+        data = fetch_page(params, cursor)
+        raw_offers = data.get("data", [])
+        meta = data.get("meta", {})
+        total = meta.get("totalItems", 0)
+
+        batch = [(raw.get("slug", ""), transform_offer(raw)) for raw in raw_offers]
+
+        next_info = meta.get("next", {})
+        next_cursor = next_info.get("cursor")
+        is_last = not raw_offers or next_cursor is None or next_cursor <= cursor
+
+        yield batch, total, is_last
+
+        if is_last:
+            break
+        cursor = next_cursor
+
+
+def scrape(args) -> list[dict]:
+    """Main scraping logic with pagination."""
+    params = build_params(
+        city=args.city, category=args.category, experience=args.experience,
+        workplace=args.workplace,
+        employment=getattr(args, "employment", None),
+        working_time=getattr(args, "working_time", None),
+        keyword=getattr(args, "keyword", None),
+        with_salary=getattr(args, "with_salary", False),
+    )
 
     all_offers = []
-    cursor = 0
     limit = args.limit or float("inf")
 
     print(f"🔍 Scraping justjoin.it offers...", file=sys.stderr)
@@ -149,37 +187,17 @@ def scrape(args) -> list[dict]:
     if args.category:
         print(f"   Category: {args.category}", file=sys.stderr)
 
-    while len(all_offers) < limit:
-        try:
-            data = fetch_page(params, cursor)
-        except Exception as e:
-            print(f"\n❌ API error: {e}", file=sys.stderr)
-            break
-
-        offers = data.get("data", [])
-        meta = data.get("meta", {})
-        total = meta.get("totalItems", 0)
-
-        if not offers:
-            break
-
-        for raw_offer in offers:
+    for batch, total, is_last in iter_pages(params):
+        for slug, offer in batch:
             if len(all_offers) >= limit:
                 break
-            all_offers.append((raw_offer.get("slug", ""), transform_offer(raw_offer)))
+            all_offers.append((slug, offer))
 
-        fetched = len(all_offers)
         target = min(total, int(limit)) if limit != float("inf") else total
-        print(f"   Fetched {fetched}/{target} offers...", file=sys.stderr, end="\r")
+        print(f"   Fetched {len(all_offers)}/{target} offers...", file=sys.stderr, end="\r")
 
-        # Move cursor forward
-        next_info = meta.get("next", {})
-        next_cursor = next_info.get("cursor")
-        if next_cursor is None or next_cursor <= cursor:
+        if len(all_offers) >= limit or is_last:
             break
-        cursor = next_cursor
-
-        # Be polite to the server
         time.sleep(0.3)
 
     # Optionally fetch full descriptions

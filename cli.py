@@ -15,6 +15,7 @@ import threading
 import time
 import tty
 from collections import Counter
+from dataclasses import dataclass, field
 from types import SimpleNamespace
 
 from prompt_toolkit import PromptSession
@@ -49,14 +50,34 @@ console = Console(theme=THEME)
 
 # ─── State ────────────────────────────────────────────────────────────────────
 
-state = {
-    "offers": [],
-    "city": None,
-    "category": None,
-    "experience": None,
-    "workplace": None,
-    "has_details": False,
-}
+
+@dataclass
+class SessionState:
+    offers: list = field(default_factory=list)
+    city: str | None = None
+    category: str | None = None
+    experience: str | None = None
+    workplace: str | None = None
+    has_details: bool = False
+
+    def needs_scrape(self, args, need_details=False):
+        """Check if scraping is needed based on current cache vs requested filters."""
+        if not self.offers:
+            return True
+        if args.city and args.city != self.city:
+            return True
+        if args.category and args.category != self.category:
+            return True
+        if args.experience and args.experience != self.experience:
+            return True
+        if args.workplace and args.workplace != self.workplace:
+            return True
+        if need_details and not self.has_details:
+            return True
+        return False
+
+
+state = SessionState()
 
 # ─── Cancellation ────────────────────────────────────────────────────────────
 
@@ -253,7 +274,7 @@ class SmartCompleter(Completer):
 
     def _complete_companies(self, query, text, parts):
         """Complete company names from loaded offers."""
-        if not state["offers"]:
+        if not state.offers:
             return
 
         # Everything typed after "/show "
@@ -261,7 +282,7 @@ class SmartCompleter(Completer):
         after_cmd = text[cmd_len:] if len(text) > cmd_len else ""
 
         seen = set()
-        for o in state["offers"]:
+        for o in state.offers:
             name = o.get("company_name", "")
             if name in seen:
                 continue
@@ -313,6 +334,17 @@ def _parse_args(args_str):
             else:
                 rest.append(p)
 
+    ALL_KNOWN = (
+        set(scrapper.CATEGORIES) | set(scrapper.EXPERIENCE_LEVELS)
+        | set(scrapper.WORKPLACE_TYPES) | set(scrapper.EMPLOYMENT_TYPES)
+        | {c.lower() for c in CITIES}
+    )
+    for token in rest:
+        console.print(f"  [warn]Unknown argument: \"{token}\" — ignored[/]")
+        close = [k for k in ALL_KNOWN if k.startswith(token.lower())]
+        if close:
+            console.print(f"  [muted]Did you mean: {', '.join(close[:5])}?[/]")
+
     return SimpleNamespace(
         city=city, category=category, experience=experience,
         workplace=workplace, emp_type=emp_type, rest=" ".join(rest),
@@ -320,32 +352,15 @@ def _parse_args(args_str):
     )
 
 
-def _needs_scrape(args, need_details=False):
-    """Check if scraping is needed based on current cache vs requested filters."""
-    if not state["offers"]:
-        return True
-    if args.city and args.city != state["city"]:
-        return True
-    if args.category and args.category != state["category"]:
-        return True
-    if args.experience and args.experience != state["experience"]:
-        return True
-    if args.workplace and args.workplace != state["workplace"]:
-        return True
-    if need_details and not state["has_details"]:
-        return True
-    return False
-
-
 def _ensure_data(args, need_details=False):
     """Ensure offers are loaded, scraping if necessary."""
-    if not _needs_scrape(args, need_details):
+    if not state.needs_scrape(args, need_details):
         return True
 
-    city = args.city or state["city"]
-    category = args.category or state["category"]
-    experience = args.experience or state["experience"]
-    workplace = args.workplace or state["workplace"]
+    city = args.city or state.city
+    category = args.category or state.category
+    experience = args.experience or state.experience
+    workplace = args.workplace or state.workplace
 
     if not city:
         console.print("  [error]Specify city, e.g.: /analyze Kraków python senior b2b[/]")
@@ -369,6 +384,10 @@ def _scrape(city, category, experience, workplace, fetch_details):
     console.print()
 
     try:
+        params = scrapper.build_params(
+            city=city, category=category, experience=experience, workplace=workplace,
+        )
+
         with CancellableProgress(
                 SpinnerColumn(),
                 TextColumn("[progress.description]{task.description}"),
@@ -378,49 +397,19 @@ def _scrape(city, category, experience, workplace, fetch_details):
         ) as progress:
             task = progress.add_task("Fetching offers...", total=None)
 
-            params = {
-                "itemsCount": scrapper.PAGE_SIZE,
-                "sortBy": "publishedAt",
-                "orderBy": "descending",
-            }
-            if city:
-                params["city"] = city
-            if category:
-                params["categories"] = category
-            if experience:
-                params["experienceLevels"] = experience
-            if workplace:
-                params["workplaceType"] = workplace
-
             all_offers = []
-            cursor = 0
-
-            while True:
-                data = scrapper.fetch_page(params, cursor)
+            for batch, total, is_last in scrapper.iter_pages(params):
                 check_cancel()
-                offers = data.get("data", [])
-                meta = data.get("meta", {})
-                total_items = meta.get("totalItems", 0)
 
                 if progress.tasks[task].total is None:
-                    progress.update(task, total=total_items)
+                    progress.update(task, total=total)
 
-                if not offers:
-                    break
-
-                for raw in offers:
-                    all_offers.append((raw.get("slug", ""), scrapper.transform_offer(raw)))
-
+                all_offers.extend(batch)
                 progress.update(task, completed=len(all_offers))
 
-                next_info = meta.get("next", {})
-                next_cursor = next_info.get("cursor")
-                if next_cursor is None or next_cursor <= cursor:
+                if is_last:
                     break
-                cursor = next_cursor
                 _cancel_aware_sleep(0.3)
-
-            progress.update(task, completed=len(all_offers))
 
             if fetch_details:
                 detail_task = progress.add_task("Fetching descriptions...", total=len(all_offers))
@@ -435,19 +424,19 @@ def _scrape(city, category, experience, workplace, fetch_details):
                     progress.update(detail_task, completed=i + 1)
                     check_cancel()
                     _cancel_aware_sleep(0.15)
-                state["offers"] = results
-                state["has_details"] = True
+                state.offers = results
+                state.has_details = True
             else:
-                state["offers"] = [offer for _, offer in all_offers]
-                state["has_details"] = False
+                state.offers = [offer for _, offer in all_offers]
+                state.has_details = False
 
-        state["city"] = city
-        state["category"] = category
-        state["experience"] = experience
-        state["workplace"] = workplace
+        state.city = city
+        state.category = category
+        state.experience = experience
+        state.workplace = workplace
 
         console.print()
-        console.print(f"  [success]Fetched {len(state['offers'])} offers[/]")
+        console.print(f"  [success]Fetched {len(state.offers)} offers[/]")
         console.print()
         return True
 
@@ -467,7 +456,7 @@ def fmt_salary(val: float) -> str:
 
 def make_summary_table(salaries, total_offers):
     """Build a Rich table with salary analysis summary."""
-    midpoints = sorted([(lo + hi) / 2 for lo, hi, _ in salaries])
+    midpoints = sorted([analyzer.midpoint(lo, hi) for lo, hi, _ in salaries])
     lows = sorted([lo for lo, _, _ in salaries])
     highs = sorted([hi for _, hi, _ in salaries])
 
@@ -589,13 +578,13 @@ def cmd_help():
 def cmd_status():
     """Show current state."""
     console.print()
-    if not state["offers"]:
+    if not state.offers:
         console.print("  [muted]No offers loaded. Run a command like /analyze Kraków python senior[/]")
     else:
-        n = len(state["offers"])
-        has_salary = sum(1 for o in state["offers"]
+        n = len(state.offers)
+        has_salary = sum(1 for o in state.offers
                          if any(et.get("salary_from") for et in o.get("employment_types", [])))
-        has_body = sum(1 for o in state["offers"] if o.get("body"))
+        has_body = sum(1 for o in state.offers if o.get("body"))
 
         info = Table(show_header=False, box=None, padding=(0, 2))
         info.add_column("k", style="dim")
@@ -603,14 +592,14 @@ def cmd_status():
         info.add_row("Offers", str(n))
         info.add_row("With salary", str(has_salary))
         info.add_row("With description", str(has_body))
-        if state["city"]:
-            info.add_row("City", state["city"])
-        if state["category"]:
-            info.add_row("Category", state["category"])
-        if state["experience"]:
-            info.add_row("Experience", state["experience"])
-        if state["workplace"]:
-            info.add_row("Workplace", state["workplace"])
+        if state.city:
+            info.add_row("City", state.city)
+        if state.category:
+            info.add_row("Category", state.category)
+        if state.experience:
+            info.add_row("Experience", state.experience)
+        if state.workplace:
+            info.add_row("Workplace", state.workplace)
 
         console.print(Panel(info, title="[bold]Status[/]", border_style="dim", padding=(1, 2)))
     console.print()
@@ -622,19 +611,15 @@ def cmd_analyze(args_str: str):
     if not _ensure_data(args):
         return
 
-    salaries = analyzer.extract_salaries(state["offers"], args.emp_type)
-
-    if not salaries:
-        console.print("  [warn]No offers with salary data[/]")
-        return
-
-    total_offers = len(state["offers"])
+    total_offers = len(state.offers)
     types_to_show = [args.emp_type] if args.emp_type else scrapper.EMPLOYMENT_TYPES
 
+    any_data = False
     for et in types_to_show:
-        et_salaries = analyzer.extract_salaries(state["offers"], et) if et else salaries
+        et_salaries = analyzer.extract_salaries(state.offers, et)
         if not et_salaries:
             continue
+        any_data = True
         result = make_summary_table(et_salaries, total_offers)
         if not result:
             continue
@@ -652,19 +637,23 @@ def cmd_analyze(args_str: str):
         console.print()
         console.print(make_distribution_table(et_midpoints, f"Salary Distribution — {label}"))
 
+    if not any_data:
+        console.print("  [warn]No offers with salary data[/]")
+        return
+
     console.print()
 
 
 def _print_top_for_type(salaries, pct: int, label: str):
     """Print top-companies tables for a single employment type."""
-    midpoints = sorted([(lo + hi) / 2 for lo, hi, _ in salaries])
+    midpoints = sorted([analyzer.midpoint(lo, hi) for lo, hi, _ in salaries])
     if len(midpoints) < 10:
         console.print(f"  [muted]{label}: not enough data[/]")
         return
 
     threshold = analyzer.percentile(midpoints, pct)
-    above = [(lo, hi, o) for lo, hi, o in salaries if (lo + hi) / 2 > threshold]
-    above.sort(key=lambda x: (x[0] + x[1]) / 2, reverse=True)
+    above = [(lo, hi, o) for lo, hi, o in salaries if analyzer.midpoint(lo, hi) > threshold]
+    above.sort(key=lambda x: analyzer.midpoint(x[0], x[1]), reverse=True)
 
     if not above:
         console.print(f"  [muted]{label}: no offers > P{pct}[/]")
@@ -683,7 +672,7 @@ def _print_top_for_type(salaries, pct: int, label: str):
     summary.add_column("Max", justify="right", style="salary")
 
     for company, count in company_counts.most_common():
-        mids = [(lo + hi) / 2 for lo, hi, o in above if o["company_name"] == company]
+        mids = [analyzer.midpoint(lo, hi) for lo, hi, o in above if o["company_name"] == company]
         summary.add_row(company, str(count), fmt_salary(min(mids)), fmt_salary(max(mids)))
 
     console.print()
@@ -701,7 +690,7 @@ def _print_top_for_type(salaries, pct: int, label: str):
     detail.add_column("Title", style="dim")
 
     for lo, hi, offer in above:
-        mid = (lo + hi) / 2
+        mid = analyzer.midpoint(lo, hi)
         detail.add_row(fmt_salary(mid), fmt_salary(lo), fmt_salary(hi),
                        offer["company_name"], offer["title"])
 
@@ -720,7 +709,7 @@ def cmd_top(args_str: str):
 
     any_data = False
     for et in types_to_show:
-        et_salaries = analyzer.extract_salaries(state["offers"], et)
+        et_salaries = analyzer.extract_salaries(state.offers, et)
         if not et_salaries:
             continue
         any_data = True
@@ -742,7 +731,7 @@ def cmd_outliers(args_str: str):
     if not _ensure_data(args):
         return
 
-    salaries = analyzer.extract_salaries(state["offers"], args.emp_type)
+    salaries = analyzer.extract_salaries(state.offers, args.emp_type)
     _, outliers = analyzer.detect_outliers(salaries)
 
     if not outliers:
@@ -760,8 +749,8 @@ def cmd_outliers(args_str: str):
     table.add_column("Company", style="bold")
     table.add_column("Title", style="dim")
 
-    for lo, hi, offer in sorted(outliers, key=lambda x: (x[0] + x[1]) / 2, reverse=True):
-        mid = (lo + hi) / 2
+    for lo, hi, offer in sorted(outliers, key=lambda x: analyzer.midpoint(x[0], x[1]), reverse=True):
+        mid = analyzer.midpoint(lo, hi)
         table.add_row(fmt_salary(mid), fmt_salary(lo), fmt_salary(hi),
                       offer["company_name"], offer["title"])
 
@@ -777,7 +766,7 @@ def cmd_benefits(args_str: str):
         return
 
     b2b_with_body = [
-        o for o in state["offers"]
+        o for o in state.offers
         if o.get("body") and any(et.get("type") == "b2b" for et in o.get("employment_types", []))
     ]
 
@@ -844,7 +833,7 @@ def cmd_benefits(args_str: str):
 
 def cmd_show(args_str: str):
     """Show offers from a specific company."""
-    if not state["offers"]:
+    if not state.offers:
         console.print("  [error]No data. Run a command first, e.g.: /analyze Kraków python senior[/]")
         return
 
@@ -853,7 +842,12 @@ def cmd_show(args_str: str):
         console.print("  [error]Specify company name: /show Revolut[/]")
         return
 
-    matches = [o for o in state["offers"] if query in o.get("company_name", "").lower()]
+    # Tiered matching: exact → startswith → substring
+    matches = [o for o in state.offers if o.get("company_name", "").lower() == query]
+    if not matches:
+        matches = [o for o in state.offers if o.get("company_name", "").lower().startswith(query)]
+    if not matches:
+        matches = [o for o in state.offers if query in o.get("company_name", "").lower()]
 
     if not matches:
         console.print(f"  [warn]No offers found for \"{args_str.strip()}\"[/]")
