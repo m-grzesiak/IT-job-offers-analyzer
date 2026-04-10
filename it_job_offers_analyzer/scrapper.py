@@ -1,17 +1,9 @@
-#!/usr/bin/env python3
 """
 JustJoin.IT Job Offers Scraper
 ==============================
 Scrapes job offers from justjoin.it using their internal REST API.
 Supports filtering by city, category, experience level, workplace type,
 employment type, keyword, and more.
-
-Usage examples:
-    python justjoin_scraper.py --city Warszawa
-    python justjoin_scraper.py --city Kraków --category python --experience senior
-    python justjoin_scraper.py --city Warszawa --category javascript --workplace remote --keyword react
-    python justjoin_scraper.py --city Gdańsk --employment b2b --with-salary --limit 50
-    python justjoin_scraper.py --city Wrocław --output offers.json
 """
 
 import json

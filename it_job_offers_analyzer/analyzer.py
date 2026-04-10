@@ -1,14 +1,8 @@
-#!/usr/bin/env python3
 """
 IT Offers Salary Analyzer
 =========================
 Analyzes salary data from scraped job offers.
 Shows median salary range and percentile distribution.
-
-Usage:
-    python analyzer.py offers.json
-    python analyzer.py offers.json --type b2b
-    python analyzer.py offers.json --type permanent
 """
 
 import re
