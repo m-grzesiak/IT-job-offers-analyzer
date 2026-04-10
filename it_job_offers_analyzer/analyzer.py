@@ -11,8 +11,6 @@ Usage:
     python analyzer.py offers.json --type permanent
 """
 
-import argparse
-import json
 import re
 import statistics
 from collections import Counter
@@ -312,45 +310,3 @@ def print_benefits(offers: list[dict], employment_type: str | None):
             print(f"  {offer['company_name']:<30}  {vac_str:<16}  {sick_str:<16}  {extra_str:<16}  {offer['title']}")
 
     print(f"\n{'=' * 60}\n")
-
-
-def main():
-    parser = argparse.ArgumentParser(description="IT job offers salary analysis")
-    parser.add_argument("file", help="JSON file with offers (scraper output)")
-    parser.add_argument(
-        "--type", "-t",
-        choices=["b2b", "permanent", "mandate", "internship"],
-        default=None,
-        help="Filter by employment type (default: all)",
-    )
-
-    parser.add_argument(
-        "--exclude-outliers", "-x",
-        action="store_true",
-        help="Exclude outliers (IQR) from analysis",
-    )
-    parser.add_argument(
-        "--show-top",
-        action="store_true",
-        help="Show companies with offers above P90",
-    )
-    parser.add_argument(
-        "--benefits",
-        action="store_true",
-        help="B2B benefits analysis (paid vacation, sick leave). Requires --fetch-details in scraper",
-    )
-
-    args = parser.parse_args()
-
-    with open(args.file, encoding="utf-8") as f:
-        offers = json.load(f)
-
-    salaries = extract_salaries(offers, args.type)
-    print_report(salaries, args.type, len(offers), args.exclude_outliers, args.show_top)
-
-    if args.benefits:
-        print_benefits(offers, args.type)
-
-
-if __name__ == "__main__":
-    main()

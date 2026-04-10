@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-IT Offers Analyzer — Interactive CLI
-=====================================
+IT Job Offers Analyzer — Interactive CLI
+=========================================
 Interactive interface for scraping and analyzing IT job offers from justjoin.it.
 Commands auto-fetch data when needed and cache results in session.
 """
@@ -32,8 +32,8 @@ from rich.table import Table
 from rich.text import Text
 from rich.theme import Theme
 
-import analyzer
-import scrapper
+from . import analyzer
+from . import scrapper
 
 # ─── Theme ────────────────────────────────────────────────────────────────────
 
@@ -173,7 +173,7 @@ CMD_STATUS   = "/status"
 CMD_HELP     = "/help"
 CMD_QUIT     = "/quit"
 
-HISTORY_PATH = os.path.expanduser("~/.it-offers-analyzer-history")
+HISTORY_PATH = os.path.expanduser("~/.itjobs-history")
 
 CITIES = [
     "Warszawa", "Kraków", "Wrocław", "Gdańsk", "Poznań", "Łódź",
@@ -965,21 +965,21 @@ def dispatch(user_input: str):
 BANNER = (
     "\n"
     "[bold magenta]"
-    r"        __________   ____  ______________________  _____" "\n"
-    r"       /  _/_  __/  / __ \/ ____/ ____/ ____/ __ \/ ___/" "\n"
-    r"       / /  / /    / / / / /_  / /_  / __/ / /_/ /\__ \ " "\n"
-    r"     _/ /  / /    / /_/ / __/ / __/ / /___/ _, _/___/ / " "\n"
-    r"    /___/ /_/     \____/_/   /_/   /_____/_/ |_|/____/  " "\n"
+    r"        __________      ______  ____     ____  ______________________  _____" "\n"
+    r"       /  _/_  __/     / / __ \/ __ )   / __ \/ ____/ ____/ ____/ __ \/ ___/" "\n"
+    r"       / /  / /   __  / / / / / __  |  / / / / /_  / /_  / __/ / /_/ /\__ \ " "\n"
+    r"     _/ /  / /   / /_/ / /_/ / /_/ /  / /_/ / __/ / __/ / /___/ _, _/___/ / " "\n"
+    r"    /___/ /_/    \____/\____/_____/   \____/_/   /_/   /_____/_/ |_|/____/  " "\n"
     "[/]"
     "[bold cyan]"
-    r"        ___    _   _____    ____  _______   __________ " "\n"
-    r"       /   |  / | / /   |  / /\ \/ /__  /  / ____/ __ " "\\\n"
-    r"      / /| | /  |/ / /| | / /  \  /  / /  / __/ / /_/ /" "\n"
-    r"     / ___ |/ /|  / ___ |/ /___/ /  / /__/ /___/ _, _/ " "\n"
-    r"    /_/  |_/_/ |_/_/  |_/_____/_/  /____/_____/_/ |_|  " "\n"
+    r"                ___    _   _____    ____  _______   __________ " "\n"
+    r"               /   |  / | / /   |  / /\ \/ /__  /  / ____/ __ " "\\\n"
+    r"              / /| | /  |/ / /| | / /  \  /  / /  / __/ / /_/ /" "\n"
+    r"             / ___ |/ /|  / ___ |/ /___/ /  / /__/ /___/ _, _/ " "\n"
+    r"            /_/  |_/_/ |_/_/  |_/_____/_/  /____/_____/_/ |_|  " "\n"
     "[/]"
-    "[dim]    ───────────────────────────────────────────────────[/]\n"
-    "[dim]    justjoin.it  ·  salary explorer  ·  v0.1[/]\n"
+    "[dim]    ──────────────────────────────────────────────────────────────────────[/]\n"
+    "[dim]                       salary explorer  ·  v0.1[/]\n"
 )
 
 
@@ -1000,7 +1000,7 @@ def _show_welcome():
         subtitle="[dim]Tab for auto-complete · ESC to cancel[/]",
         border_style="dim",
         padding=(1, 2),
-        width=56,
+        width=76,
     ))
     console.print()
     console.print("  [muted]Try:[/] [accent]/analyze Kraków python senior b2b[/]")

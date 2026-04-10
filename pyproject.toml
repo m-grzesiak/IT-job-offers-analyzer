@@ -1,0 +1,40 @@
+[build-system]
+requires = ["setuptools>=68.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "itjobs"
+version = "0.1.0"
+description = "Analyze IT job offers from justjoin.it — salary stats, top companies, benefits"
+readme = "README.md"
+license = "Apache-2.0"
+requires-python = ">=3.10"
+authors = [
+    { name = "Michal Grzesiak" },
+]
+keywords = ["jobs", "salary", "analysis", "justjoin", "cli"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Topic :: Utilities",
+]
+dependencies = [
+    "rich>=13.0",
+    "prompt_toolkit>=3.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/m-grzesiak/IT-job-offers-analyzer"
+Repository = "https://github.com/m-grzesiak/IT-job-offers-analyzer"
+Issues = "https://github.com/m-grzesiak/IT-job-offers-analyzer/issues"
+
+[project.scripts]
+itjobs = "it_job_offers_analyzer.cli:main"
