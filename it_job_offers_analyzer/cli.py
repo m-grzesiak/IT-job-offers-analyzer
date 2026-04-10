@@ -226,10 +226,10 @@ COMMAND_DESCRIPTIONS = {
 }
 
 COMMAND_SYNTAX = {
-    CMD_ANALYZE:   f"{CMD_ANALYZE} [city] [cat] [exp] [workplace] [type]",
-    CMD_TOP:       f"{CMD_TOP} [city] [cat] [exp] [workplace] [type] [>P75]",
-    CMD_OUTLIERS:  f"{CMD_OUTLIERS} [city] [cat] [exp] [workplace] [type]",
-    CMD_BENEFITS:  f"{CMD_BENEFITS} [city] [cat] [exp] [workplace]",
+    CMD_ANALYZE:   f"{CMD_ANALYZE} \\[city] \\[cat] \\[exp] \\[workplace] \\[type]",
+    CMD_TOP:       f"{CMD_TOP} \\[city] \\[cat] \\[exp] \\[workplace] \\[type] \\[>P75]",
+    CMD_OUTLIERS:  f"{CMD_OUTLIERS} \\[city] \\[cat] \\[exp] \\[workplace] \\[type]",
+    CMD_BENEFITS:  f"{CMD_BENEFITS} \\[city] \\[cat] \\[exp] \\[workplace]",
     CMD_SHOW:      f"{CMD_SHOW} <company>",
     CMD_COMPANIES: CMD_COMPANIES,
     CMD_STATUS:    CMD_STATUS,
@@ -592,16 +592,48 @@ def make_distribution_table(midpoints, title="Salary Distribution"):
 # ─── Commands ────────────────────────────────────────────────────────────────
 
 def cmd_help():
-    """Show help."""
+    """Show help with parameter details."""
     help_table = Table(show_header=False, box=None, padding=(0, 2))
-    help_table.add_column("cmd", style="bold cyan", min_width=38)
+    help_table.add_column("cmd", style="bold cyan", no_wrap=True)
     help_table.add_column("desc")
 
     for cmd in sorted(COMMAND_SYNTAX):
         help_table.add_row(COMMAND_SYNTAX[cmd], COMMAND_DESCRIPTIONS[cmd])
 
     console.print()
-    console.print(Panel(help_table, title="[bold]Commands[/]", border_style="dim", padding=(1, 2)))
+    console.print(Panel(help_table, title="[bold]Commands[/]", border_style="dim",
+                        expand=False, padding=(1, 2)))
+
+    params_table = Table(show_header=True, box=None, padding=(0, 2))
+    params_table.add_column("Parameter", style="bold yellow", no_wrap=True)
+    params_table.add_column("Values", style="dim")
+
+    params_table.add_row(
+        "\\[city]",
+        ", ".join(CITIES[:8]) + ", …",
+    )
+    params_table.add_row(
+        "\\[cat]",
+        ", ".join(scrapper.CATEGORIES[:10]) + ", …",
+    )
+    params_table.add_row("\\[exp]", ", ".join(scrapper.EXPERIENCE_LEVELS))
+    params_table.add_row("\\[workplace]", ", ".join(scrapper.WORKPLACE_TYPES))
+    params_table.add_row("\\[type]", ", ".join(scrapper.EMPLOYMENT_TYPES))
+    params_table.add_row(
+        "\\[>P75]",
+        "percentile threshold: "
+        + ", ".join(f">P{p}" for p in analyzer.PERCENTILES),
+    )
+    params_table.add_row("<company>", "company name [bold](required)[/]")
+
+    console.print(Panel(
+        params_table,
+        title="[bold]Parameters[/]",
+        subtitle="[dim]\\[brackets] = optional   <angle> = required[/]",
+        border_style="dim",
+        expand=False,
+        padding=(1, 2),
+    ))
     console.print()
 
 
