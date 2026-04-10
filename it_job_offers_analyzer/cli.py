@@ -164,15 +164,16 @@ class CancellableProgress(Progress):
 
 # ─── Constants ────────────────────────────────────────────────────────────────
 
-CMD_ANALYZE  = "/analyze"
-CMD_TOP      = "/top"
-CMD_OUTLIERS = "/outliers"
-CMD_BENEFITS = "/benefits"
+CMD_ANALYZE   = "/analyze"
+CMD_TOP       = "/top"
+CMD_OUTLIERS  = "/outliers"
+CMD_BENEFITS  = "/benefits"
 CMD_SHOW      = "/show"
 CMD_COMPANIES = "/companies"
+CMD_CLEAR     = "/clear"
 CMD_STATUS    = "/status"
-CMD_HELP     = "/help"
-CMD_QUIT     = "/quit"
+CMD_HELP      = "/help"
+CMD_QUIT      = "/quit"
 
 HISTORY_PATH = os.path.expanduser("~/.itjobs-history")
 
@@ -197,8 +198,9 @@ COMMAND_STAGES = {
     CMD_BENEFITS: BASE_STAGES + [
         (scrapper.WORKPLACE_TYPES, "workplace"),
     ],
+    CMD_CLEAR:     [],
     CMD_COMPANIES: [],
-    CMD_HELP:    [],
+    CMD_HELP:      [],
     CMD_OUTLIERS: BASE_STAGES + [
         (scrapper.EMPLOYMENT_TYPES, "employment type"),
         (scrapper.WORKPLACE_TYPES, "workplace"),
@@ -220,9 +222,10 @@ COMMAND_DESCRIPTIONS = {
     CMD_BENEFITS: "B2B benefits in offer descriptions",
     CMD_SHOW:      "offer details for a company",
     CMD_COMPANIES: "list companies in loaded data",
+    CMD_CLEAR:     "clear screen and reset loaded data",
     CMD_STATUS:    "summary of loaded data",
-    CMD_HELP:     "list available commands",
-    CMD_QUIT:     "exit the program",
+    CMD_HELP:      "list available commands",
+    CMD_QUIT:      "exit the program",
 }
 
 COMMAND_SYNTAX = {
@@ -232,6 +235,7 @@ COMMAND_SYNTAX = {
     CMD_BENEFITS:  f"{CMD_BENEFITS} \\[city] \\[cat] \\[exp] \\[workplace]",
     CMD_SHOW:      f"{CMD_SHOW} <company>",
     CMD_COMPANIES: CMD_COMPANIES,
+    CMD_CLEAR:     CMD_CLEAR,
     CMD_STATUS:    CMD_STATUS,
     CMD_HELP:      CMD_HELP,
     CMD_QUIT:      CMD_QUIT,
@@ -896,6 +900,14 @@ def cmd_benefits(args_str: str):
     console.print()
 
 
+def cmd_clear():
+    """Clear screen and reset session state."""
+    global state
+    state = SessionState()
+    console.clear()
+    _show_welcome()
+
+
 def cmd_companies():
     """List companies in loaded data, sorted by number of offers."""
     if not _require_data():
@@ -993,6 +1005,7 @@ def cmd_show(args_str: str):
 COMMANDS = {
     CMD_HELP:     (cmd_help, ""),
     CMD_STATUS:   (cmd_status, ""),
+    CMD_CLEAR:    (cmd_clear, ""),
     CMD_ANALYZE:  (cmd_analyze, "args"),
     CMD_TOP:      (cmd_top, "args"),
     CMD_OUTLIERS: (cmd_outliers, "args"),
