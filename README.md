@@ -51,6 +51,10 @@ python -m venv .venv && source .venv/bin/activate
 pip install -e .
 ```
 
+## Disclaimer
+
+This project is intended for educational and personal use only. It is not affiliated with or endorsed by justjoin.it. No scraped data is stored or redistributed — all analysis happens locally in your terminal session. Use responsibly and in accordance with the target website's terms of service.
+
 ## License
 
 Apache License 2.0
