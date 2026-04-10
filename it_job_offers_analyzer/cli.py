@@ -168,8 +168,9 @@ CMD_ANALYZE  = "/analyze"
 CMD_TOP      = "/top"
 CMD_OUTLIERS = "/outliers"
 CMD_BENEFITS = "/benefits"
-CMD_SHOW     = "/show"
-CMD_STATUS   = "/status"
+CMD_SHOW      = "/show"
+CMD_COMPANIES = "/companies"
+CMD_STATUS    = "/status"
 CMD_HELP     = "/help"
 CMD_QUIT     = "/quit"
 
@@ -205,8 +206,9 @@ COMMAND_STAGES = {
     CMD_BENEFITS: BASE_STAGES + [
         (scrapper.WORKPLACE_TYPES, "workplace"),
     ],
-    CMD_SHOW:    [],  # company names completed dynamically
-    CMD_STATUS:  [],
+    CMD_SHOW:      [],  # company names completed dynamically
+    CMD_COMPANIES: [],
+    CMD_STATUS:    [],
     CMD_HELP:    [],
     CMD_QUIT:    [],
 }
@@ -216,8 +218,9 @@ COMMAND_DESCRIPTIONS = {
     CMD_TOP:      "top companies by median salary",
     CMD_OUTLIERS: "offers outside the normal range",
     CMD_BENEFITS: "B2B benefits in offer descriptions",
-    CMD_SHOW:     "offer details for a company",
-    CMD_STATUS:   "summary of loaded data",
+    CMD_SHOW:      "offer details for a company",
+    CMD_COMPANIES: "list companies in loaded data",
+    CMD_STATUS:    "summary of loaded data",
     CMD_HELP:     "list available commands",
     CMD_QUIT:     "exit the program",
 }
@@ -465,6 +468,14 @@ def _scrape(city, category, experience, workplace, fetch_details):
         return False
 
 
+def _require_data() -> bool:
+    """Check that offers are loaded. Prints an error and returns False if not."""
+    if not state.offers:
+        console.print("  [error]No data. Run /analyze first, e.g.: /analyze Kraków python senior[/]")
+        return False
+    return True
+
+
 # ─── Display helpers ─────────────────────────────────────────────────────────
 
 
@@ -580,6 +591,7 @@ def cmd_help():
         (f"{CMD_OUTLIERS} [city] [cat] [exp] [workplace] [type]",   CMD_OUTLIERS),
         (f"{CMD_BENEFITS} [city] [cat] [exp] [workplace]",          CMD_BENEFITS),
         (f"{CMD_SHOW} <company>",                                    CMD_SHOW),
+        (CMD_COMPANIES,                                              CMD_COMPANIES),
         (CMD_STATUS,                                                 CMD_STATUS),
         (CMD_HELP,                                                   CMD_HELP),
         (CMD_QUIT,                                                   CMD_QUIT),
@@ -849,10 +861,35 @@ def cmd_benefits(args_str: str):
     console.print()
 
 
+def cmd_companies():
+    """List companies in loaded data, sorted by number of offers."""
+    if not _require_data():
+        return
+
+    counts = Counter(o.get("company_name", "?") for o in state.offers)
+
+    table = Table(
+        title=f"Companies ({len(counts)})",
+        title_style="bold magenta",
+        border_style="dim",
+    )
+    table.add_column("#", justify="right", style="muted")
+    table.add_column("Company", style="bold")
+    table.add_column("Offers", justify="right", style="accent")
+
+    for i, (company, count) in enumerate(counts.most_common(), 1):
+        table.add_row(str(i), company, str(count))
+
+    console.print()
+    console.print(table)
+    console.print()
+    console.print("  [muted]Use /show <company> to see offer details[/]")
+    console.print()
+
+
 def cmd_show(args_str: str):
     """Show offers from a specific company."""
-    if not state.offers:
-        console.print("  [error]No data. Run a command first, e.g.: /analyze Kraków python senior[/]")
+    if not _require_data():
         return
 
     query = args_str.strip().lower() if args_str else ""
@@ -923,8 +960,9 @@ COMMANDS = {
     CMD_TOP:      (cmd_top, "args"),
     CMD_OUTLIERS: (cmd_outliers, "args"),
     CMD_BENEFITS: (cmd_benefits, "args"),
-    CMD_SHOW:     (cmd_show, "args"),
-    CMD_QUIT:     (None, ""),
+    CMD_SHOW:      (cmd_show, "args"),
+    CMD_COMPANIES: (cmd_companies, ""),
+    CMD_QUIT:      (None, ""),
 }
 
 
