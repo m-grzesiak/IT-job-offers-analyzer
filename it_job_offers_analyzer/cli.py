@@ -881,8 +881,9 @@ def cmd_show(args_str: str):
     table.add_column("City")
     table.add_column("Workplace")
     table.add_column("From (PLN)", justify="right")
-    table.add_column("To (PLN)", justify="right", style="salary")
+    table.add_column("To (PLN)", justify="right")
     table.add_column("Type")
+    table.add_column("Link", style="dim", no_wrap=True)
 
     for o in matches:
         ets = o.get("employment_types", [])
@@ -890,12 +891,14 @@ def cmd_show(args_str: str):
             et.get("type"): et for et in ets
             if (et.get("currency") or "").upper() == "PLN" and et.get("salary_from") is not None
         }
+        url = o.get("url", "")
         if pln_by_type:
             for et_type, et in pln_by_type.items():
                 table.add_row(
                     o["title"], o.get("experience_level", ""),
                     o.get("city", ""), o.get("workplace_type", ""),
                     f"{et['salary_from']:,.0f}", f"{et['salary_to']:,.0f}", et_type or "",
+                    url,
                 )
         else:
             types = "/".join(dict.fromkeys(filter(None, (et.get("type") for et in ets))))
@@ -903,6 +906,7 @@ def cmd_show(args_str: str):
                 o["title"], o.get("experience_level", ""),
                 o.get("city", ""), o.get("workplace_type", ""),
                 "[dim]-[/]", "[dim]-[/]", f"[dim]{types or '-'}[/]",
+                url,
             )
 
     console.print()
