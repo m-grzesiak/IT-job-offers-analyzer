@@ -22,7 +22,9 @@ from prompt_toolkit import PromptSession
 from prompt_toolkit.auto_suggest import AutoSuggestFromHistory
 from prompt_toolkit.completion import Completer, Completion
 from prompt_toolkit.document import Document
+from prompt_toolkit.filters import has_completions
 from prompt_toolkit.history import FileHistory
+from prompt_toolkit.key_binding import KeyBindings
 from rich.console import Console
 from rich.panel import Panel
 from rich.progress import Progress, SpinnerColumn, TextColumn, BarColumn, MofNCompleteColumn
@@ -296,6 +298,17 @@ class SmartCompleter(Completer):
 
 
 completer = SmartCompleter()
+
+# ─── Key bindings ────────────────────────────────────────────────────────────
+
+bindings = KeyBindings()
+
+
+@bindings.add("enter", filter=has_completions)
+def accept_completion(event):
+    """Enter accepts the selected completion instead of submitting the line."""
+    buf = event.current_buffer
+    buf.complete_state = None
 
 
 # ─── Argument parsing & data management ──────────────────────────────────────
@@ -1004,6 +1017,7 @@ def main():
         history=FileHistory(HISTORY_PATH),
         auto_suggest=AutoSuggestFromHistory(),
         completer=completer,
+        key_bindings=bindings,
     )
 
     while True:
