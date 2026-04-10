@@ -340,20 +340,25 @@ def _parse_args(args_str):
         | {c.lower() for c in CITIES}
     )
     for token in rest:
-        console.print(f"  [warn]Unknown argument: \"{token}\" — ignored[/]")
+        console.print(f"  [warn]Unknown argument: \"{token}\"[/]")
         close = [k for k in ALL_KNOWN if k.startswith(token.lower())]
         if close:
             console.print(f"  [muted]Did you mean: {', '.join(close[:5])}?[/]")
 
+    if rest:
+        return None
+
     return SimpleNamespace(
         city=city, category=category, experience=experience,
-        workplace=workplace, emp_type=emp_type, rest=" ".join(rest),
+        workplace=workplace, emp_type=emp_type,
         top_percentile=top_percentile,
     )
 
 
 def _ensure_data(args, need_details=False):
-    """Ensure offers are loaded, scraping if necessary."""
+    """Ensure offers are loaded, scraping if necessary. Returns False if args is None (parse error)."""
+    if args is None:
+        return False
     if not state.needs_scrape(args, need_details):
         return True
 
