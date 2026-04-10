@@ -398,6 +398,9 @@ def _ensure_data(args, need_details=False):
     if not city:
         console.print("  [error]Specify city, e.g.: /analyze Kraków python senior b2b[/]")
         return False
+    if not category:
+        console.print("  [error]Specify category, e.g.: /analyze Kraków python senior b2b[/]")
+        return False
 
     return _scrape(city, category, experience, workplace, need_details)
 
