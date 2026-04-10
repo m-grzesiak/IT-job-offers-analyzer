@@ -1090,6 +1090,11 @@ def main():
 
     _show_welcome()
 
+    if os.path.exists(HISTORY_PATH):
+        age_days = (time.time() - os.path.getmtime(HISTORY_PATH)) / 86400
+        if age_days > 30:
+            os.remove(HISTORY_PATH)
+
     session = PromptSession(
         history=FileHistory(HISTORY_PATH),
         auto_suggest=AutoSuggestFromHistory(),
