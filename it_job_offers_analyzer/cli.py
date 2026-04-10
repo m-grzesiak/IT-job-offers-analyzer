@@ -952,8 +952,8 @@ def cmd_show(args_str: str):
     table.add_column("Level", style="accent")
     table.add_column("City")
     table.add_column("Workplace")
-    table.add_column("From (PLN)", justify="right")
-    table.add_column("To (PLN)", justify="right")
+    table.add_column("From/mo", justify="right")
+    table.add_column("To/mo", justify="right")
     table.add_column("Type")
     table.add_column("Link", style="dim", no_wrap=True)
 
@@ -966,10 +966,12 @@ def cmd_show(args_str: str):
         url = o.get("url", "")
         if pln_by_type:
             for et_type, et in pln_by_type.items():
+                sal_from = analyzer.normalize_monthly(et["salary_from"])
+                sal_to = analyzer.normalize_monthly(et["salary_to"])
                 table.add_row(
                     o["title"], o.get("experience_level", ""),
                     o.get("city", ""), o.get("workplace_type", ""),
-                    f"{et['salary_from']:,.0f}", f"{et['salary_to']:,.0f}", et_type or "",
+                    fmt_salary(sal_from), fmt_salary(sal_to), et_type or "",
                     url,
                 )
         else:
