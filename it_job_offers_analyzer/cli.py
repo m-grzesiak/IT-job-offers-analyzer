@@ -194,23 +194,23 @@ COMMAND_STAGES = {
         (scrapper.EMPLOYMENT_TYPES, "employment type"),
         (scrapper.WORKPLACE_TYPES, "workplace"),
     ],
+    CMD_BENEFITS: BASE_STAGES + [
+        (scrapper.WORKPLACE_TYPES, "workplace"),
+    ],
+    CMD_COMPANIES: [],
+    CMD_HELP:    [],
+    CMD_OUTLIERS: BASE_STAGES + [
+        (scrapper.EMPLOYMENT_TYPES, "employment type"),
+        (scrapper.WORKPLACE_TYPES, "workplace"),
+    ],
+    CMD_QUIT:    [],
+    CMD_SHOW:      [],  # company names completed dynamically
+    CMD_STATUS:    [],
     CMD_TOP: BASE_STAGES + [
         (scrapper.EMPLOYMENT_TYPES, "employment type"),
         (scrapper.WORKPLACE_TYPES, "workplace"),
         ([f">P{p}" for p in analyzer.PERCENTILES], "percentile threshold"),
     ],
-    CMD_OUTLIERS: BASE_STAGES + [
-        (scrapper.EMPLOYMENT_TYPES, "employment type"),
-        (scrapper.WORKPLACE_TYPES, "workplace"),
-    ],
-    CMD_BENEFITS: BASE_STAGES + [
-        (scrapper.WORKPLACE_TYPES, "workplace"),
-    ],
-    CMD_SHOW:      [],  # company names completed dynamically
-    CMD_COMPANIES: [],
-    CMD_STATUS:    [],
-    CMD_HELP:    [],
-    CMD_QUIT:    [],
 }
 
 COMMAND_DESCRIPTIONS = {
@@ -225,6 +225,18 @@ COMMAND_DESCRIPTIONS = {
     CMD_QUIT:     "exit the program",
 }
 
+COMMAND_SYNTAX = {
+    CMD_ANALYZE:   f"{CMD_ANALYZE} [city] [cat] [exp] [workplace] [type]",
+    CMD_TOP:       f"{CMD_TOP} [city] [cat] [exp] [workplace] [type] [>P75]",
+    CMD_OUTLIERS:  f"{CMD_OUTLIERS} [city] [cat] [exp] [workplace] [type]",
+    CMD_BENEFITS:  f"{CMD_BENEFITS} [city] [cat] [exp] [workplace]",
+    CMD_SHOW:      f"{CMD_SHOW} <company>",
+    CMD_COMPANIES: CMD_COMPANIES,
+    CMD_STATUS:    CMD_STATUS,
+    CMD_HELP:      CMD_HELP,
+    CMD_QUIT:      CMD_QUIT,
+}
+
 
 class SmartCompleter(Completer):
     """Context-aware completer that suggests parameters stage-by-stage."""
@@ -236,7 +248,7 @@ class SmartCompleter(Completer):
         # Stage 0: completing the command itself
         if not parts or (len(parts) == 1 and not text.endswith(" ")):
             prefix = parts[0] if parts else ""
-            for cmd in COMMAND_STAGES:
+            for cmd in sorted(COMMAND_STAGES):
                 if cmd.startswith(prefix):
                     yield Completion(
                         cmd,
@@ -585,20 +597,8 @@ def cmd_help():
     help_table.add_column("cmd", style="bold cyan", min_width=38)
     help_table.add_column("desc")
 
-    commands = [
-        (f"{CMD_ANALYZE} [city] [cat] [exp] [workplace] [type]",    CMD_ANALYZE),
-        (f"{CMD_TOP} [city] [cat] [exp] [workplace] [type] [>P75]", CMD_TOP),
-        (f"{CMD_OUTLIERS} [city] [cat] [exp] [workplace] [type]",   CMD_OUTLIERS),
-        (f"{CMD_BENEFITS} [city] [cat] [exp] [workplace]",          CMD_BENEFITS),
-        (f"{CMD_SHOW} <company>",                                    CMD_SHOW),
-        (CMD_COMPANIES,                                              CMD_COMPANIES),
-        (CMD_STATUS,                                                 CMD_STATUS),
-        (CMD_HELP,                                                   CMD_HELP),
-        (CMD_QUIT,                                                   CMD_QUIT),
-    ]
-
-    for syntax, cmd in commands:
-        help_table.add_row(syntax, COMMAND_DESCRIPTIONS[cmd])
+    for cmd in sorted(COMMAND_SYNTAX):
+        help_table.add_row(COMMAND_SYNTAX[cmd], COMMAND_DESCRIPTIONS[cmd])
 
     console.print()
     console.print(Panel(help_table, title="[bold]Commands[/]", border_style="dim", padding=(1, 2)))
