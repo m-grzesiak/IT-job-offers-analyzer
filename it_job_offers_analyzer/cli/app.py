@@ -1,7 +1,11 @@
 """Main REPL loop and command dispatch."""
 
+import json
 import os
+import threading
 import time
+import urllib.request
+from importlib.metadata import version as pkg_version
 
 from prompt_toolkit import PromptSession
 from prompt_toolkit.auto_suggest import AutoSuggestFromHistory
@@ -109,6 +113,29 @@ def dispatch(user_input: str) -> bool:
     return True
 
 
+# ---- Update check ----
+
+
+def _check_for_update() -> str | None:
+    """Check PyPI for a newer version. Returns new version string or None."""
+    try:
+        current = pkg_version("itjobs")
+        req = urllib.request.Request(
+            "https://pypi.org/pypi/itjobs/json",
+            headers={"Accept": "application/json"},
+        )
+        with urllib.request.urlopen(req, timeout=2) as resp:
+            data = json.loads(resp.read().decode("utf-8"))
+        latest = data["info"]["version"]
+        cur = tuple(int(x) for x in current.split("."))
+        lat = tuple(int(x) for x in latest.split("."))
+        if lat > cur:
+            return latest
+    except Exception:
+        pass
+    return None
+
+
 # ---- Entry point ----
 
 
@@ -116,6 +143,15 @@ def main():
     prompt_style = PTStyle.from_dict({"prompt": "ansicyan bold"})
 
     show_welcome()
+
+    # Non-blocking update check — result shown before first prompt
+    update_result: list[str | None] = [None]
+
+    def _bg_check():
+        update_result[0] = _check_for_update()
+
+    update_thread = threading.Thread(target=_bg_check, daemon=True)
+    update_thread.start()
 
     if os.path.exists(HISTORY_PATH):
         age_days = (time.time() - os.path.getmtime(HISTORY_PATH)) / 86400
@@ -128,6 +164,14 @@ def main():
         completer=completer,
         key_bindings=bindings,
     )
+
+    update_thread.join(timeout=2)
+    if update_result[0]:
+        console.print(
+            f"  [warn]New version available: {update_result[0]}[/]"
+            f"  [muted]—  pip install --upgrade itjobs[/]"
+        )
+        console.print()
 
     while True:
         try:
