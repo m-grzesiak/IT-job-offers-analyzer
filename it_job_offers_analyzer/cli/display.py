@@ -195,16 +195,16 @@ def gradient_bar(ratio: float, width: int = 20, char: str = "\u2501", empty_char
 def make_summary_table(stats: SalaryStats, total_offers: int) -> Table:
     """Build a Rich table with salary analysis summary."""
     table = Table(show_header=False, box=None, padding=(0, 2))
-    table.add_column("key", style="dim")
-    table.add_column("value", style="bold white")
+    table.add_column("key", style=C_FG)
+    table.add_column("value", style="bold white", justify="right")
 
-    table.add_row(f"[{C_CYAN}]\u25cf[/] Total offers", str(total_offers))
-    table.add_row(f"[{C_GREEN}]\u25cf[/] With salary", str(stats.count))
-    table.add_row(f"[{C_BORDER}]\u25cf[/] Without salary", str(total_offers - stats.count))
+    table.add_row("Total offers", str(total_offers))
+    table.add_row("With salary", str(stats.count))
+    table.add_row("Without salary", str(total_offers - stats.count))
     table.add_row("", "")
-    table.add_row("  Median \u2014 lower", fmt_salary(stats.median_low))
-    table.add_row("  Median \u2014 upper", fmt_salary(stats.median_high))
-    table.add_row("  [bold]Median \u2014 mid[/]", f"[bold {C_PINK}]{fmt_salary(stats.median_mid)}[/]")
+    table.add_row("Median \u2014 lower", fmt_salary(stats.median_low))
+    table.add_row("Median \u2014 upper", fmt_salary(stats.median_high))
+    table.add_row("[bold]Median \u2014 mid[/]", f"[bold {C_PINK}]{fmt_salary(stats.median_mid)}[/]")
 
     return table
 
@@ -215,7 +215,7 @@ def make_percentile_table(midpoints: list[float], title: str = "Percentiles (mid
     table.add_column("Percentile", justify="right", style="accent")
     table.add_column("Amount", justify="right")
     table.add_column("Offers \u2264", justify="right")
-    table.add_column("", min_width=25)
+    table.add_column("Scale", min_width=25)
 
     max_val = max(midpoints)
     for p in analyzer.PERCENTILES:
@@ -243,7 +243,7 @@ def make_distribution_table(midpoints: list[float], title: str = "Salary Distrib
     table.add_column("Range", justify="right")
     table.add_column("Offers", justify="right")
     table.add_column("%", justify="right")
-    table.add_column("", min_width=25)
+    table.add_column("Distribution", min_width=25)
 
     total = len(midpoints)
     for lo, hi, label in brackets:

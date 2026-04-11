@@ -57,9 +57,9 @@ class TestDispatch:
     def test_help_dispatches_without_args(self, mock_cmds, capture_console):
         mock_cmds.cmd_help = MagicMock()
         from it_job_offers_analyzer.cli.app import COMMAND_REGISTRY
-        COMMAND_REGISTRY["/help"] = (mock_cmds.cmd_help, False)
+        COMMAND_REGISTRY["/help"] = (mock_cmds.cmd_help, True)
         dispatch("/help")
-        mock_cmds.cmd_help.assert_called_once_with()
+        mock_cmds.cmd_help.assert_called_once_with("")
 
     def test_cancelled_error_caught(self, _no_cancel, capture_console):
         """CancelledError during command execution should be caught."""

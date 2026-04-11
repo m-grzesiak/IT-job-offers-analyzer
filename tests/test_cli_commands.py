@@ -259,13 +259,39 @@ class TestCmdClear:
 
 
 class TestCmdHelp:
-    def test_prints_commands(self, capture_console):
-        commands.cmd_help()
+    def test_overview_prints_grouped_commands(self, capture_console):
+        commands.cmd_help("")
         output = capture_console.getvalue()
         assert "/analyze" in output
         assert "/top" in output
-        assert "/help" in output
         assert "/recent" in output
+        assert "Analysis" in output
+        assert "Exploration" in output
+        assert "Start here" in output
+
+    def test_detail_for_known_command(self, capture_console):
+        commands.cmd_help("analyze")
+        output = capture_console.getvalue()
+        assert "Examples" in output
+        assert "/analyze Krak\u00f3w python" in output
+        assert "Try next" in output
+
+    def test_detail_with_leading_slash(self, capture_console):
+        commands.cmd_help("/top")
+        output = capture_console.getvalue()
+        assert "Examples" in output
+        assert "/top" in output
+
+    def test_unknown_command_shows_error(self, capture_console):
+        commands.cmd_help("nonexistent")
+        output = capture_console.getvalue()
+        assert "Unknown command" in output
+
+    def test_partial_match_suggests_command(self, capture_console):
+        commands.cmd_help("an")
+        output = capture_console.getvalue()
+        assert "Did you mean" in output
+        assert "analyze" in output
 
 
 # ---------------------------------------------------------------------------

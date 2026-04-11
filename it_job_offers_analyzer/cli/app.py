@@ -34,7 +34,7 @@ from .display import C_BORDER, C_CYAN, C_PURPLE, console, make_panel
 # ---- Command registry ----
 
 COMMAND_REGISTRY: dict[str, tuple] = {
-    "/help": (commands.cmd_help, False),
+    "/help": (commands.cmd_help, True),
     "/status": (commands.cmd_status, False),
     "/clear": (commands.cmd_clear, False),
     "/companies": (commands.cmd_companies, False),

@@ -9,11 +9,16 @@ from rich.table import Table
 from .constants import (
     CITIES,
     COMMAND_DESCRIPTIONS,
+    COMMAND_DETAILS,
+    COMMAND_PARAMS,
     COMMAND_SYNTAX,
+    HELP_GROUPS,
+    PARAM_HELP,
 )
 from .display import (
     C_BORDER,
     C_CYAN,
+    C_FG,
     C_GREEN,
     C_ORANGE,
     SalaryStats,
@@ -39,79 +44,171 @@ from .. import scrapper
 # ---- Informational commands ----
 
 
-def cmd_help():
-    """Show help with parameter details."""
-    help_table = Table(show_header=False, box=None, padding=(0, 2))
-    help_table.add_column("cmd", style=f"bold {C_CYAN}", no_wrap=True)
-    help_table.add_column("desc")
-    for cmd in sorted(COMMAND_SYNTAX):
-        help_table.add_row(COMMAND_SYNTAX[cmd], COMMAND_DESCRIPTIONS[cmd])
+def cmd_help(args_str: str = ""):
+    """Show help overview or detailed help for a specific command."""
+    query = args_str.strip().lower().lstrip("/")
+    if query:
+        _help_detail(query)
+    else:
+        _help_overview()
 
-    console.print()
-    console.print(make_panel(
-        help_table,
-        "Commands", icon="\u25c6",
-        border_style=C_BORDER,
-        expand=False,
-    ))
-    console.print()
 
-    params_table = Table(show_header=True, box=None, padding=(0, 2))
-    params_table.add_column("Parameter", style=f"bold {C_ORANGE}", no_wrap=True)
-    params_table.add_column("Values", style="dim")
-    params_table.add_row("\\[city]", ", ".join(CITIES[:8]) + ", \u2026")
-    params_table.add_row("\\[cat]", ", ".join(scrapper.CATEGORIES[:10]) + ", \u2026")
-    params_table.add_row("\\[exp]", ", ".join(scrapper.EXPERIENCE_LEVELS))
-    params_table.add_row("\\[workplace]", ", ".join(scrapper.WORKPLACE_TYPES))
-    params_table.add_row("\\[type]", ", ".join(scrapper.EMPLOYMENT_TYPES))
-    params_table.add_row(
-        "\\[>P75]",
-        "percentile threshold: " + ", ".join(f">P{p}" for p in analyzer.PERCENTILES),
+_HELP_WIDTH = 76  # matches banner separator width
+
+
+def _help_overview():
+    """Show grouped command overview with getting-started guidance."""
+    # Getting started
+    console.print()
+    start = Table(show_header=False, box=None, padding=(0, 1))
+    start.add_column("text")
+    start.add_row(f"[accent]/analyze Krak\u00f3w python senior b2b[/]")
+    start.add_row("")
+    start.add_row(
+        f"[{C_FG}]Data is fetched automatically. All filters are optional \u2014\n"
+        f"mix and match city, category, experience, employment type, and workplace.[/]"
     )
-    params_table.add_row("\\[days]", "number of days for /recent (default: 3)")
-    params_table.add_row("<company>", "company name [bold](required)[/]")
 
     console.print(make_panel(
-        params_table,
-        "Parameters", icon="\u25c6",
-        subtitle=f"[{C_BORDER}] \\[brackets] = optional   <angle> = required [/]",
+        start,
+        "Start here", icon="\u25b8",
+        border_style=C_GREEN,
+        width=_HELP_WIDTH,
+    ))
+
+    # Grouped commands
+    for group_name, cmds in HELP_GROUPS:
+        table = Table(show_header=False, box=None, padding=(0, 2))
+        table.add_column("cmd", style=f"bold {C_CYAN}", no_wrap=True, min_width=16)
+        table.add_column("desc", style=C_FG)
+        for cmd in cmds:
+            table.add_row(cmd, COMMAND_DESCRIPTIONS[cmd])
+
+        console.print(make_panel(
+            table,
+            group_name, icon="\u25c6",
+            border_style=C_BORDER,
+            width=_HELP_WIDTH,
+        ))
+
+    # Filters reference (compact)
+    filters = Table(show_header=False, box=None, padding=(0, 2))
+    filters.add_column("param", style=f"bold {C_ORANGE}", no_wrap=True)
+    filters.add_column("values", style=C_FG)
+    filters.add_row("city", ", ".join(CITIES[:6]) + ", \u2026")
+    filters.add_row("category", ", ".join(scrapper.CATEGORIES[:8]) + ", \u2026")
+    filters.add_row("experience", ", ".join(scrapper.EXPERIENCE_LEVELS))
+    filters.add_row("type", ", ".join(scrapper.EMPLOYMENT_TYPES))
+    filters.add_row("workplace", ", ".join(scrapper.WORKPLACE_TYPES))
+
+    console.print(make_panel(
+        filters,
+        "Filters", icon="\u25c6",
+        subtitle=f"[{C_BORDER}] all optional \u00b7 order doesn't matter \u00b7 auto-detected [/]",
         border_style=C_BORDER,
-        expand=False,
+        width=_HELP_WIDTH,
+    ))
+
+    # Tips
+    tips = Table(show_header=False, box=None, padding=(0, 2))
+    tips.add_column("key", style=f"bold {C_CYAN}", no_wrap=True)
+    tips.add_column("desc", style=C_FG)
+    tips.add_row("Tab", "auto-complete commands, cities, categories, and more")
+    tips.add_row("ESC", "cancel a running operation")
+    tips.add_row("/help <command>", "detailed help with examples, e.g. /help analyze")
+
+    console.print(make_panel(
+        tips,
+        "Tips", icon="\u25c6",
+        border_style=C_BORDER,
+        width=_HELP_WIDTH,
     ))
     console.print()
 
-    compare_table = Table(show_header=False, box=None, padding=(0, 2))
-    compare_table.add_column("example", style=f"bold {C_CYAN}", no_wrap=True)
-    compare_table.add_column("desc", style="dim")
-    compare_table.add_row("/compare Krak\u00f3w Warszawa python senior b2b", "compare 2 cities")
-    compare_table.add_row("/compare Krak\u00f3w Warszawa Wroc\u0142aw python senior", "compare 3 cities")
-    compare_table.add_row("/compare Krak\u00f3w python java senior b2b", "compare categories")
-    compare_table.add_row("/compare Krak\u00f3w python senior b2b permanent", "compare employment types")
-    compare_table.add_row("/compare Krak\u00f3w python junior senior b2b", "compare experience levels")
-    compare_table.add_row("/compare Krak\u00f3w python remote office b2b", "compare workplace types")
 
-    console.print(make_panel(
-        compare_table,
-        "/compare \u2014 examples", icon="\u25b8",
-        subtitle=f"[{C_BORDER}] pass 2+ values from one group \u00b7 rest are filters [/]",
-        border_style=C_BORDER,
-        expand=False,
-    ))
+def _help_detail(query: str):
+    """Show detailed help for a specific command."""
+    # Resolve command name (with or without slash)
+    cmd_key = f"/{query}"
+    details = COMMAND_DETAILS.get(cmd_key)
+
+    if not details:
+        console.print(f"  [error]Unknown command: /{query}[/]")
+        # Suggest closest match
+        available = [c.lstrip("/") for c in COMMAND_DETAILS]
+        matches = [c for c in available if c.startswith(query)]
+        if matches:
+            console.print(f"  [muted]Did you mean:[/] [accent]/help {matches[0]}[/]")
+        else:
+            console.print("  [muted]Type /help to see all commands[/]")
+        return
+
     console.print()
 
-    recent_table = Table(show_header=False, box=None, padding=(0, 2))
-    recent_table.add_column("example", style=f"bold {C_CYAN}", no_wrap=True)
-    recent_table.add_column("desc", style="dim")
-    recent_table.add_row("/recent Krak\u00f3w python senior", "last 3 days (default)")
-    recent_table.add_row("/recent 7 Krak\u00f3w python", "last 7 days")
-    recent_table.add_row("/recent 1 b2b", "last 24h, B2B only")
+    # Summary + syntax
+    header = Table(show_header=False, box=None, padding=(0, 2))
+    header.add_column("k", style=C_BORDER, no_wrap=True)
+    header.add_column("v")
+    header.add_row("", f"[bold]{details['summary']}[/]")
+    header.add_row("", "")
+    header.add_row("Syntax", f"[accent]{COMMAND_SYNTAX[cmd_key]}[/]")
+    header.add_row("", f"[{C_FG}]{details['notes']}[/]")
 
     console.print(make_panel(
-        recent_table,
-        "/recent \u2014 examples", icon="\u25b8",
-        subtitle=f"[{C_BORDER}] \\[days] defaults to 3 \u00b7 shows per-day chart + offer list [/]",
+        header,
+        cmd_key, icon="\u25b8",
+        border_style=C_CYAN,
+        width=_HELP_WIDTH,
+    ))
+
+    # Parameters
+    param_keys = COMMAND_PARAMS.get(cmd_key, [])
+    if param_keys:
+        params_table = Table(show_header=True, box=None, padding=(0, 2))
+        params_table.add_column("Parameter", style=f"bold {C_ORANGE}", no_wrap=True)
+        params_table.add_column("Description", style=C_FG)
+        params_table.add_column("Values", style=C_BORDER)
+        for pk in param_keys:
+            syntax, desc, values = PARAM_HELP[pk]
+            vals_str = ", ".join(values) + ", \u2026" if len(values) > 5 else ", ".join(values)
+            params_table.add_row(syntax, desc, vals_str or "")
+
+        console.print(make_panel(
+            params_table,
+            "Parameters", icon="\u25c6",
+            subtitle=f"[{C_BORDER}] \\[brackets] = optional   <angle> = required [/]",
+            border_style=C_BORDER,
+            width=_HELP_WIDTH,
+        ))
+
+    # Examples
+    ex_table = Table(show_header=False, box=None, padding=(0, 2))
+    ex_table.add_column("cmd", style=f"bold {C_CYAN}", no_wrap=True)
+    ex_table.add_column("desc", style=C_FG)
+    for example, desc in details["examples"]:
+        ex_table.add_row(example, desc)
+
+    console.print(make_panel(
+        ex_table,
+        "Examples", icon="\u25c6",
         border_style=C_BORDER,
-        expand=False,
+        width=_HELP_WIDTH,
+    ))
+
+    # Output + next steps
+    footer = Table(show_header=False, box=None, padding=(0, 2))
+    footer.add_column("k", style=C_BORDER, no_wrap=True)
+    footer.add_column("v")
+    footer.add_row("Shows", f"[{C_FG}]{details['output']}[/]")
+    footer.add_row("", "")
+    next_cmds = " [muted]\u00b7[/] ".join(f"[accent]{c}[/]" for c in details["next"])
+    footer.add_row("Try next", next_cmds)
+
+    console.print(make_panel(
+        footer,
+        "What to expect", icon="\u25c6",
+        border_style=C_BORDER,
+        width=_HELP_WIDTH,
     ))
     console.print()
 
@@ -177,7 +274,7 @@ def cmd_analyze(args_str: str):
         any_data = True
         label = et.upper() if et else "all types"
         console.print()
-        console.print(make_panel(make_summary_table(stats, total_offers), f"Summary \u2014 {label}", icon="\u25cf"))
+        console.print(make_panel(make_summary_table(stats, total_offers), f"Summary \u2014 {label}", icon="\u25cf", expand=False))
         console.print()
         console.print(make_percentile_table(stats.midpoints, f"Percentiles \u2014 {label}"))
         console.print()
