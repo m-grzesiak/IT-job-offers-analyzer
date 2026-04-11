@@ -170,6 +170,7 @@ CMD_OUTLIERS  = "/outliers"
 CMD_BENEFITS  = "/benefits"
 CMD_SHOW      = "/show"
 CMD_COMPANIES = "/companies"
+CMD_PROGRESSION = "/progression"
 CMD_CLEAR     = "/clear"
 CMD_STATUS    = "/status"
 CMD_HELP      = "/help"
@@ -200,6 +201,12 @@ COMMAND_STAGES = {
     ],
     CMD_CLEAR:     [],
     CMD_COMPANIES: [],
+    CMD_PROGRESSION: [
+        (CITIES, "city"),
+        (scrapper.CATEGORIES, "category"),
+        (scrapper.EMPLOYMENT_TYPES, "employment type"),
+        (scrapper.WORKPLACE_TYPES, "workplace"),
+    ],
     CMD_HELP:      [],
     CMD_OUTLIERS: BASE_STAGES + [
         (scrapper.EMPLOYMENT_TYPES, "employment type"),
@@ -220,6 +227,7 @@ COMMAND_DESCRIPTIONS = {
     CMD_TOP:      "top companies by median salary",
     CMD_OUTLIERS: "offers outside the normal range",
     CMD_BENEFITS: "B2B benefits in offer descriptions",
+    CMD_PROGRESSION: "salary progression junior → senior",
     CMD_SHOW:      "offer details for a company",
     CMD_COMPANIES: "list companies in loaded data",
     CMD_CLEAR:     "clear screen and reset loaded data",
@@ -233,6 +241,7 @@ COMMAND_SYNTAX = {
     CMD_TOP:       f"{CMD_TOP} \\[city] \\[cat] \\[exp] \\[workplace] \\[type] \\[>P75]",
     CMD_OUTLIERS:  f"{CMD_OUTLIERS} \\[city] \\[cat] \\[exp] \\[workplace] \\[type]",
     CMD_BENEFITS:  f"{CMD_BENEFITS} \\[city] \\[cat] \\[exp] \\[workplace]",
+    CMD_PROGRESSION: f"{CMD_PROGRESSION} \\[city] \\[cat] \\[type] \\[workplace]",
     CMD_SHOW:      f"{CMD_SHOW} <company>",
     CMD_COMPANIES: CMD_COMPANIES,
     CMD_CLEAR:     CMD_CLEAR,
@@ -499,15 +508,15 @@ def _require_data() -> bool:
 
 
 def fmt_salary(val: float) -> str:
-    return f"{val:,.0f} PLN"
+    return f"{val:,.0f} PLN".replace(",", " ")
 
 
 def _fmt_delta(delta: float) -> str:
     """Format a salary delta with color: green for positive, red for negative."""
     if delta > 0:
-        return f"[green]+{delta:,.0f} PLN[/]"
+        return f"[green]+{delta:,.0f} PLN[/]".replace(",", " ")
     if delta < 0:
-        return f"[red]{delta:,.0f} PLN[/]"
+        return f"[red]{delta:,.0f} PLN[/]".replace(",", " ")
     return "[dim]0 PLN[/]"
 
 
@@ -909,6 +918,143 @@ def cmd_benefits(args_str: str):
     console.print()
 
 
+def _scrape_for_level(city, category, experience, workplace, progress, task_id):
+    """Scrape offers for a single experience level, updating a shared progress task.
+
+    Returns a list of offer dicts. Does not touch session state.
+    """
+    params = scrapper.build_params(
+        city=city, category=category, experience=experience, workplace=workplace,
+    )
+    all_offers = []
+    for batch, total, is_last in scrapper.iter_pages(params):
+        check_cancel()
+        if progress.tasks[task_id].total is None:
+            progress.update(task_id, total=total)
+        all_offers.extend(batch)
+        progress.update(task_id, completed=len(all_offers))
+        if is_last:
+            break
+        _cancel_aware_sleep(0.3)
+    return [offer for _, offer in all_offers]
+
+
+def cmd_progression(args_str: str):
+    """Show salary progression across experience levels."""
+    args = _parse_args(args_str)
+    if args is None:
+        return
+
+    city = args.city or state.city
+    category = args.category or state.category
+    workplace = args.workplace or state.workplace
+    emp_type = args.emp_type
+
+    if not city:
+        console.print("  [error]Specify city, e.g.: /progression Kraków python b2b[/]")
+        return
+    if not category:
+        console.print("  [error]Specify category, e.g.: /progression Kraków python b2b[/]")
+        return
+
+    if args.experience:
+        console.print("  [warn]Experience level ignored — /progression tests all levels[/]")
+
+    filters = [city, category]
+    if emp_type:
+        filters.append(emp_type)
+    if workplace:
+        filters.append(workplace)
+    console.print()
+    console.print(f"  [accent]Scraping salary progression...[/]")
+    console.print(f"  [muted]Filters: {' / '.join(filters)}[/]")
+    console.print()
+
+    level_data = {}  # level -> list of offers
+    try:
+        with CancellableProgress(
+            SpinnerColumn(),
+            TextColumn("[progress.description]{task.description}"),
+            BarColumn(),
+            MofNCompleteColumn(),
+            console=console,
+        ) as progress:
+            for level in scrapper.EXPERIENCE_LEVELS:
+                label = level.replace("_", " ").title()
+                task = progress.add_task(f"{label}...", total=None)
+                offers = _scrape_for_level(city, category, level, workplace, progress, task)
+                level_data[level] = offers
+                _cancel_aware_sleep(0.3)
+    except CancelledError:
+        console.print("\n  [warn]Operation cancelled[/]")
+        return
+
+    # Compute stats per level
+    rows = []
+    prev_mid = None
+    for level in scrapper.EXPERIENCE_LEVELS:
+        offers = level_data[level]
+        salaries = analyzer.extract_salaries(offers, emp_type)
+        label = level.replace("_", " ").title()
+        if not salaries:
+            rows.append((label, len(offers), 0, None, None, None, None))
+            continue
+        lows = sorted(lo for lo, _, _ in salaries)
+        highs = sorted(hi for _, hi, _ in salaries)
+        mids = sorted(analyzer.midpoint(lo, hi) for lo, hi, _ in salaries)
+        med_lo = statistics.median(lows)
+        med_hi = statistics.median(highs)
+        med_mid = statistics.median(mids)
+        delta = med_mid - prev_mid if prev_mid is not None else None
+        rows.append((label, len(offers), len(salaries), med_lo, med_hi, med_mid, delta))
+        prev_mid = med_mid
+
+    if all(row[3] is None for row in rows):
+        console.print("  [warn]No salary data for any experience level[/]")
+        return
+
+    # Build the table
+    type_label = f" / {emp_type.upper()}" if emp_type else ""
+    table = Table(
+        title=f"Salary Progression — {city} / {category}{type_label}",
+        title_style="bold magenta",
+        border_style="dim",
+    )
+    table.add_column("Level", style="bold")
+    table.add_column("Offers", justify="right", style="muted")
+    table.add_column("With salary", justify="right", style="muted")
+    table.add_column("Median From", justify="right")
+    table.add_column("Median Mid", justify="right", style="salary")
+    table.add_column("Median To", justify="right")
+    table.add_column("Delta", justify="right")
+
+    for label, total, with_sal, med_lo, med_hi, med_mid, delta in rows:
+        if med_mid is None:
+            table.add_row(label, str(total), "0", "—", "—", "—", "")
+        else:
+            delta_str = _fmt_delta(delta) if delta is not None else "[dim]—[/]"
+            table.add_row(
+                label, str(total), str(with_sal),
+                fmt_salary(med_lo), fmt_salary(med_mid), fmt_salary(med_hi),
+                delta_str,
+            )
+
+    console.print()
+    console.print(table)
+
+    # Visual bar chart
+    valid = [(label, med_mid) for label, _, _, _, _, med_mid, _ in rows if med_mid is not None]
+    if valid:
+        max_val = max(v for _, v in valid)
+        console.print()
+        for label, med_mid in valid:
+            bar_len = int(med_mid / max_val * 35) if max_val else 0
+            bar = "█" * bar_len
+            console.print(f"  {label:>10}  [cyan]{bar}[/] {fmt_salary(med_mid)}")
+
+    console.print()
+
+
 def cmd_clear():
     """Clear screen and reset session state."""
     global state
@@ -1040,6 +1186,7 @@ COMMANDS = {
     CMD_OUTLIERS: (cmd_outliers, "args"),
     CMD_BENEFITS: (cmd_benefits, "args"),
     CMD_SHOW:      (cmd_show, "args"),
+    CMD_PROGRESSION: (cmd_progression, "args"),
     CMD_COMPANIES: (cmd_companies, ""),
     CMD_QUIT:      (None, ""),
 }
@@ -1112,7 +1259,7 @@ def _show_welcome():
     quick.add_column("cmd", style="bold cyan", min_width=16)
     quick.add_column("desc", style="dim")
 
-    for cmd in (CMD_ANALYZE, CMD_TOP, CMD_BENEFITS, CMD_HELP):
+    for cmd in (CMD_ANALYZE, CMD_TOP, CMD_PROGRESSION, CMD_BENEFITS, CMD_HELP):
         quick.add_row(cmd, COMMAND_DESCRIPTIONS[cmd])
 
     console.print(Panel(
