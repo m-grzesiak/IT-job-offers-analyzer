@@ -128,3 +128,30 @@ class TestCompareCompletion:
     def test_used_value_not_suggested(self, comp):
         completions = _get_completions(comp, "/compare Kraków ")
         assert "Kraków" not in completions
+
+    def test_filter_group_locked_after_axis_established(self, comp):
+        """Once an axis is established (2+ cities), single-value groups stop suggesting."""
+        # Two cities = axis is "city"; "python" is a filter (1 value) → no more categories
+        completions = _get_completions(comp, "/compare Kraków Warszawa python ")
+        assert "java" not in completions
+        # Experience has 0 values — still available as an unused filter slot
+        assert "senior" in completions
+
+    def test_axis_group_keeps_suggesting_before_filters(self, comp):
+        """The axis group still suggests more values when no filter is set yet."""
+        completions = _get_completions(comp, "/compare Kraków Warszawa ")
+        assert "Wrocław" in completions
+        assert "Gdańsk" in completions
+
+    def test_axis_group_stops_after_filter_added(self, comp):
+        """Once user adds a filter, axis group stops expanding."""
+        completions = _get_completions(comp, "/compare Kraków Warszawa python ")
+        assert "Wrocław" not in completions
+        assert "Gdańsk" not in completions
+
+    def test_no_axis_yet_suggests_everything(self, comp):
+        """Before an axis is established, all groups suggest freely."""
+        completions = _get_completions(comp, "/compare Kraków python ")
+        # No group has 2+ values yet — both cities and categories should appear
+        assert "Warszawa" in completions
+        assert "java" in completions

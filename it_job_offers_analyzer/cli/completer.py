@@ -71,8 +71,29 @@ class SmartCompleter(Completer):
                 )
 
     def _complete_any_stage(self, stages, used, current_word):
-        """Complete from any stage (for /compare which allows multiple values per group)."""
+        """Complete from any stage (for /compare which allows multiple values per group).
+
+        Once a comparison axis is established (a group with ≥2 used values),
+        groups that already have 1 value are treated as locked filters and
+        won't suggest additional candidates.
+        """
+        # Count how many used values belong to each group
+        group_counts = []
         for candidates, meta in stages:
+            count = sum(1 for u in used if u in candidates)
+            group_counts.append(count)
+
+        # Is there an established axis (any group with 2+ values)?
+        has_axis = any(c >= 2 for c in group_counts)
+        has_filter = any(c == 1 for c in group_counts)
+
+        for i, (candidates, meta) in enumerate(stages):
+            if has_axis and group_counts[i] == 1:
+                # This group is a locked filter — don't suggest more
+                continue
+            if has_axis and has_filter and group_counts[i] >= 2:
+                # Axis group, but user already moved on to filters — stop expanding
+                continue
             for c in candidates:
                 if c in used:
                     continue
