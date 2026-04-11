@@ -52,9 +52,16 @@ COMMAND_REGISTRY: dict[str, tuple] = {
 # ---- Welcome screen ----
 
 
-def show_welcome():
+def show_welcome(animate: bool = True):
     """Show welcome screen with quick-start commands."""
-    console.print(BANNER, highlight=False)
+    if animate:
+        for line in BANNER.split("\n"):
+            if line.startswith("[/]"):
+                line = line[3:]
+            console.print(line, highlight=False)
+            time.sleep(0.05)
+    else:
+        console.print(BANNER, highlight=False)
 
     quick = Table(show_header=False, box=None, padding=(0, 2))
     quick.add_column("cmd", style=f"bold {C_CYAN}", min_width=16)

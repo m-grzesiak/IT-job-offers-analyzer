@@ -153,7 +153,7 @@ def cmd_clear():
 
     state.reset()
     console.clear()
-    show_welcome()
+    show_welcome(animate=False)
 
 
 # ---- Analysis commands ----
