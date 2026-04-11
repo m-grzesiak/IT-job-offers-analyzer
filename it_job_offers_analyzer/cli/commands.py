@@ -391,8 +391,8 @@ def cmd_progression(args_str: str):
     type_label = f" / {emp_type.upper()}" if emp_type else ""
     table = make_table(f"Salary Progression \u2014 {city} / {category}{type_label}")
     table.add_column("Level")
-    table.add_column("Offers", justify="right", style="muted")
-    table.add_column("With salary", justify="right", style="muted")
+    table.add_column("Offers", justify="right")
+    table.add_column("With salary", justify="right")
     table.add_column("Median From", justify="right")
     table.add_column("Median Mid", justify="right")
     table.add_column("Median To", justify="right")
@@ -500,8 +500,8 @@ def cmd_compare(args_str: str):
 
     table = make_table(title)
     table.add_column(axis_label.title())
-    table.add_column("Offers", justify="right", style="muted")
-    table.add_column("With salary", justify="right", style="muted")
+    table.add_column("Offers", justify="right")
+    table.add_column("With salary", justify="right")
     table.add_column("Median From", justify="right")
     table.add_column("Median Mid", justify="right")
     table.add_column("Median To", justify="right")
@@ -665,7 +665,7 @@ def cmd_companies():
     counts = Counter(o.get("company_name", "?") for o in state.offers)
 
     table = make_table(f"Companies ({len(counts)})")
-    table.add_column("#", justify="right", style="muted")
+    table.add_column("#", justify="right")
     table.add_column("Company")
     table.add_column("Offers", justify="right", style="accent")
 

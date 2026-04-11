@@ -107,12 +107,12 @@ def fmt_salary(val: float) -> str:
 
 
 def fmt_delta(delta: float) -> str:
-    """Format a salary delta with color: green for positive, red for negative."""
+    """Format a salary delta with color and trend arrow."""
     if delta > 0:
-        return f"[{C_GREEN}]+{delta:,.0f} PLN[/]".replace(",", " ")
+        return f"[{C_GREEN}]\u25b2 +{delta:,.0f} PLN[/]".replace(",", " ")
     if delta < 0:
-        return f"[{C_RED}]{delta:,.0f} PLN[/]".replace(",", " ")
-    return "[dim]0 PLN[/]"
+        return f"[{C_RED}]\u25bc {delta:,.0f} PLN[/]".replace(",", " ")
+    return f"[dim]\u25cf 0 PLN[/]"
 
 
 # ---- Tags / pills ----
@@ -214,7 +214,7 @@ def make_percentile_table(midpoints: list[float], title: str = "Percentiles (mid
     table = make_table(title, row_styles=None)
     table.add_column("Percentile", justify="right", style="accent")
     table.add_column("Amount", justify="right")
-    table.add_column("Offers \u2264", justify="right", style="muted")
+    table.add_column("Offers \u2264", justify="right")
     table.add_column("", min_width=25)
 
     max_val = max(midpoints)
