@@ -171,6 +171,7 @@ CMD_BENEFITS  = "/benefits"
 CMD_SHOW      = "/show"
 CMD_COMPANIES = "/companies"
 CMD_PROGRESSION = "/progression"
+CMD_COMPARE   = "/compare"
 CMD_CLEAR     = "/clear"
 CMD_STATUS    = "/status"
 CMD_HELP      = "/help"
@@ -207,6 +208,13 @@ COMMAND_STAGES = {
         (scrapper.EMPLOYMENT_TYPES, "employment type"),
         (scrapper.WORKPLACE_TYPES, "workplace"),
     ],
+    CMD_COMPARE: [
+        (CITIES, "city"),
+        (scrapper.CATEGORIES, "category"),
+        (scrapper.EXPERIENCE_LEVELS, "experience"),
+        (scrapper.EMPLOYMENT_TYPES, "employment type"),
+        (scrapper.WORKPLACE_TYPES, "workplace"),
+    ],
     CMD_HELP:      [],
     CMD_OUTLIERS: BASE_STAGES + [
         (scrapper.EMPLOYMENT_TYPES, "employment type"),
@@ -228,6 +236,7 @@ COMMAND_DESCRIPTIONS = {
     CMD_OUTLIERS: "offers outside the normal range",
     CMD_BENEFITS: "B2B benefits in offer descriptions",
     CMD_PROGRESSION: "salary progression junior → senior",
+    CMD_COMPARE:     "compare salaries across cities, categories, or types",
     CMD_SHOW:      "offer details for a company",
     CMD_COMPANIES: "list companies in loaded data",
     CMD_CLEAR:     "clear screen and reset loaded data",
@@ -242,6 +251,7 @@ COMMAND_SYNTAX = {
     CMD_OUTLIERS:  f"{CMD_OUTLIERS} \\[city] \\[cat] \\[exp] \\[workplace] \\[type]",
     CMD_BENEFITS:  f"{CMD_BENEFITS} \\[city] \\[cat] \\[exp] \\[workplace]",
     CMD_PROGRESSION: f"{CMD_PROGRESSION} \\[city] \\[cat] \\[type] \\[workplace]",
+    CMD_COMPARE:     f"{CMD_COMPARE} <values...> \\[filters...]",
     CMD_SHOW:      f"{CMD_SHOW} <company>",
     CMD_COMPANIES: CMD_COMPANIES,
     CMD_CLEAR:     CMD_CLEAR,
@@ -287,6 +297,20 @@ class SmartCompleter(Completer):
 
         used = set(parts[1:]) if text.endswith(" ") else set(parts[1:-1])
         current_word = "" if text.endswith(" ") else (parts[-1] if len(parts) > 1 else "")
+
+        # /compare allows multiple values from any group (comparison axis)
+        if cmd == CMD_COMPARE:
+            for candidates, meta in stages:
+                for c in candidates:
+                    if c in used:
+                        continue
+                    if c.lower().startswith(current_word.lower()):
+                        yield Completion(
+                            c,
+                            start_position=-len(current_word),
+                            display_meta=meta,
+                        )
+            return
 
         for candidates, meta in stages:
             if any(u in candidates for u in used):
@@ -655,6 +679,43 @@ def cmd_help():
         params_table,
         title="[bold]Parameters[/]",
         subtitle="[dim]\\[brackets] = optional   <angle> = required[/]",
+        border_style="dim",
+        expand=False,
+        padding=(1, 2),
+    ))
+
+    compare_table = Table(show_header=False, box=None, padding=(0, 2))
+    compare_table.add_column("example", style="bold cyan", no_wrap=True)
+    compare_table.add_column("desc", style="dim")
+    compare_table.add_row(
+        "/compare Kraków Warszawa python senior b2b",
+        "compare 2 cities",
+    )
+    compare_table.add_row(
+        "/compare Kraków Warszawa Wrocław python senior",
+        "compare 3 cities",
+    )
+    compare_table.add_row(
+        "/compare Kraków python java senior b2b",
+        "compare categories",
+    )
+    compare_table.add_row(
+        "/compare Kraków python senior b2b permanent",
+        "compare employment types",
+    )
+    compare_table.add_row(
+        "/compare Kraków python junior senior b2b",
+        "compare experience levels",
+    )
+    compare_table.add_row(
+        "/compare Kraków python remote office b2b",
+        "compare workplace types",
+    )
+
+    console.print(Panel(
+        compare_table,
+        title="[bold]/compare — examples[/]",
+        subtitle="[dim]pass 2+ values from one group · rest are filters[/]",
         border_style="dim",
         expand=False,
         padding=(1, 2),
@@ -1055,6 +1116,217 @@ def cmd_progression(args_str: str):
     console.print()
 
 
+def _parse_compare_args(args_str):
+    """Parse /compare arguments: detect the comparison axis and common filters.
+
+    Returns (axis_name, axis_values, common_filters) or None on error.
+    axis_name is one of: "city", "category", "experience", "employment", "workplace".
+    common_filters is a SimpleNamespace with city, category, experience, workplace, emp_type.
+    """
+    parts = args_str.split() if args_str else []
+    if not parts:
+        console.print("  [error]Usage: /compare <values...> [filters...][/]")
+        console.print("  [muted]e.g. /compare Kraków Warszawa python senior b2b[/]")
+        console.print("  [muted]     /compare Kraków python java senior[/]")
+        return None
+
+    cities = []
+    categories = []
+    experiences = []
+    employments = []
+    workplaces = []
+    unknown = []
+
+    for p in parts:
+        matched_city = next((c for c in CITIES if c.lower() == p.lower()), None)
+        if matched_city:
+            cities.append(matched_city)
+        elif p in scrapper.CATEGORIES:
+            categories.append(p)
+        elif p in scrapper.EXPERIENCE_LEVELS:
+            experiences.append(p)
+        elif p in scrapper.EMPLOYMENT_TYPES:
+            employments.append(p)
+        elif p in scrapper.WORKPLACE_TYPES:
+            workplaces.append(p)
+        else:
+            unknown.append(p)
+
+    if unknown:
+        for token in unknown:
+            console.print(f"  [warn]Unknown argument: \"{token}\"[/]")
+        return None
+
+    # Find which group has multiple values — that's the comparison axis
+    groups = [
+        ("city", cities),
+        ("category", categories),
+        ("experience", experiences),
+        ("employment", employments),
+        ("workplace", workplaces),
+    ]
+    multi_groups = [(name, vals) for name, vals in groups if len(vals) > 1]
+
+    if len(multi_groups) == 0:
+        console.print("  [error]Provide multiple values for the axis you want to compare[/]")
+        console.print("  [muted]e.g. /compare Kraków Warszawa python senior b2b[/]")
+        console.print("  [muted]     /compare Kraków python java senior[/]")
+        return None
+
+    if len(multi_groups) > 1:
+        names = [n for n, _ in multi_groups]
+        console.print(f"  [error]Multiple comparison axes detected: {', '.join(names)}[/]")
+        console.print("  [muted]Only one group can have multiple values[/]")
+        return None
+
+    axis_name, axis_values = multi_groups[0]
+
+    # Everything else (single values) becomes a common filter
+    filters = SimpleNamespace(
+        city=cities[0] if len(cities) == 1 else None,
+        category=categories[0] if len(categories) == 1 else None,
+        experience=experiences[0] if len(experiences) == 1 else None,
+        workplace=workplaces[0] if len(workplaces) == 1 else None,
+        emp_type=employments[0] if len(employments) == 1 else None,
+    )
+
+    return axis_name, axis_values, filters
+
+
+def cmd_compare(args_str: str):
+    """Compare salaries across cities, categories, or employment types."""
+    result = _parse_compare_args(args_str)
+    if result is None:
+        return
+
+    axis_name, axis_values, filters = result
+
+    # For scraping, we need at least city + category (unless those are the axis)
+    need_city = axis_name != "city"
+    need_category = axis_name != "category"
+
+    if need_city and not filters.city and not state.city:
+        console.print("  [error]Specify city, e.g.: /compare python java Kraków senior b2b[/]")
+        return
+    if need_category and not filters.category and not state.category:
+        console.print("  [error]Specify category, e.g.: /compare Kraków Warszawa python senior b2b[/]")
+        return
+
+    base_city = filters.city or state.city
+    base_category = filters.category or state.category
+
+    filter_parts = []
+    if base_city and axis_name != "city":
+        filter_parts.append(base_city)
+    if base_category and axis_name != "category":
+        filter_parts.append(base_category)
+    if filters.experience and axis_name != "experience":
+        filter_parts.append(filters.experience)
+    if filters.emp_type and axis_name != "employment":
+        filter_parts.append(filters.emp_type)
+    if filters.workplace and axis_name != "workplace":
+        filter_parts.append(filters.workplace)
+
+    axis_label = axis_name.replace("employment", "type")
+    console.print()
+    console.print(f"  [accent]Comparing by {axis_label}: {', '.join(axis_values)}[/]")
+    if filter_parts:
+        console.print(f"  [muted]Common filters: {' / '.join(filter_parts)}[/]")
+    console.print()
+
+    # Scrape for each axis value
+    group_data = {}  # axis_value -> list of offers
+    try:
+        with CancellableProgress(
+            SpinnerColumn(),
+            TextColumn("[progress.description]{task.description}"),
+            BarColumn(),
+            MofNCompleteColumn(),
+            console=console,
+        ) as progress:
+            for val in axis_values:
+                # Build per-axis scrape params
+                city = val if axis_name == "city" else base_city
+                category = val if axis_name == "category" else base_category
+                experience = val if axis_name == "experience" else filters.experience
+                workplace = val if axis_name == "workplace" else filters.workplace
+
+                label = val.replace("_", " ").title() if axis_name == "experience" else val
+                task = progress.add_task(f"{label}...", total=None)
+                offers = _scrape_for_level(city, category, experience, workplace, progress, task)
+                group_data[val] = offers
+                _cancel_aware_sleep(0.3)
+    except CancelledError:
+        console.print("\n  [warn]Operation cancelled[/]")
+        return
+
+    # Compute stats per axis value
+    emp_type = filters.emp_type
+    rows = []
+    for val in axis_values:
+        offers = group_data[val]
+        salaries = analyzer.extract_salaries(offers, emp_type)
+        if not salaries:
+            rows.append((val, len(offers), 0, None, None, None))
+            continue
+        lows = sorted(lo for lo, _, _ in salaries)
+        highs = sorted(hi for _, hi, _ in salaries)
+        mids = sorted(analyzer.midpoint(lo, hi) for lo, hi, _ in salaries)
+        med_lo = statistics.median(lows)
+        med_hi = statistics.median(highs)
+        med_mid = statistics.median(mids)
+        rows.append((val, len(offers), len(salaries), med_lo, med_hi, med_mid))
+
+    if all(row[3] is None for row in rows):
+        console.print("  [warn]No salary data for any group[/]")
+        return
+
+    # Build comparison table
+    type_label = f" / {emp_type.upper()}" if emp_type else ""
+    title = f"Compare by {axis_label}{type_label}"
+    if filter_parts:
+        title += f" — {' / '.join(filter_parts)}"
+
+    table = Table(
+        title=title,
+        title_style="bold magenta",
+        border_style="dim",
+    )
+    table.add_column(axis_label.title(), style="bold")
+    table.add_column("Offers", justify="right", style="muted")
+    table.add_column("With salary", justify="right", style="muted")
+    table.add_column("Median From", justify="right")
+    table.add_column("Median Mid", justify="right", style="salary")
+    table.add_column("Median To", justify="right")
+
+    for val, total, with_sal, med_lo, med_hi, med_mid, *_ in rows:
+        label = val.replace("_", " ").title() if axis_name == "experience" else val
+        if med_mid is None:
+            table.add_row(label, str(total), "0", "—", "—", "—")
+        else:
+            table.add_row(
+                label, str(total), str(with_sal),
+                fmt_salary(med_lo), fmt_salary(med_mid), fmt_salary(med_hi),
+            )
+
+    console.print()
+    console.print(table)
+
+    # Visual bar chart of medians
+    valid = [(val, med_mid) for val, _, _, _, _, med_mid in rows if med_mid is not None]
+    if valid:
+        max_val = max(v for _, v in valid)
+        max_label = max(len(v) for v, _ in valid)
+        console.print()
+        for val, med_mid in valid:
+            label = val.replace("_", " ").title() if axis_name == "experience" else val
+            bar_len = int(med_mid / max_val * 35) if max_val else 0
+            bar = "█" * bar_len
+            console.print(f"  {label:>{max_label}}  [cyan]{bar}[/] {fmt_salary(med_mid)}")
+
+    console.print()
+
+
 def cmd_clear():
     """Clear screen and reset session state."""
     global state
@@ -1187,6 +1459,7 @@ COMMANDS = {
     CMD_BENEFITS: (cmd_benefits, "args"),
     CMD_SHOW:      (cmd_show, "args"),
     CMD_PROGRESSION: (cmd_progression, "args"),
+    CMD_COMPARE:   (cmd_compare, "args"),
     CMD_COMPANIES: (cmd_companies, ""),
     CMD_QUIT:      (None, ""),
 }
@@ -1259,7 +1532,7 @@ def _show_welcome():
     quick.add_column("cmd", style="bold cyan", min_width=16)
     quick.add_column("desc", style="dim")
 
-    for cmd in (CMD_ANALYZE, CMD_TOP, CMD_PROGRESSION, CMD_BENEFITS, CMD_HELP):
+    for cmd in (CMD_ANALYZE, CMD_TOP, CMD_PROGRESSION, CMD_COMPARE, CMD_BENEFITS, CMD_HELP):
         quick.add_row(cmd, COMMAND_DESCRIPTIONS[cmd])
 
     console.print(Panel(
