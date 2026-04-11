@@ -1,0 +1,325 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 920 600" width="920" height="600">
+  <defs>
+    <clipPath id="term-clip">
+      <rect x="0" y="36" width="920" height="564" rx="0"/>
+    </clipPath>
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&amp;display=swap');
+      text {
+        font-family: 'JetBrains Mono', 'Fira Code', 'SF Mono', 'Consolas', monospace;
+        font-size: 14px;
+        dominant-baseline: hanging;
+        white-space: pre;
+      }
+      @keyframes blink { 0%,100% { opacity: 0.8; } 50% { opacity: 0; } }
+    </style>
+  </defs>
+
+  <!-- Terminal chrome -->
+  <rect fill="#1e1e2e" x="0" y="0" width="920" height="600" rx="10"/>
+  <rect fill="#313244" x="0" y="0" width="920" height="36" rx="10"/>
+  <rect fill="#313244" x="0" y="20" width="920" height="16"/>
+  <circle cx="20" cy="18" r="6" fill="#f38ba8" opacity="0.9"/>
+  <circle cx="40" cy="18" r="6" fill="#f9e2af" opacity="0.9"/>
+  <circle cx="60" cy="18" r="6" fill="#a6e3a1" opacity="0.9"/>
+  <text x="460" y="12" text-anchor="middle" fill="#6c7086" font-size="12">itjobs — salary explorer</text>
+
+  <!-- Content (clipped) -->
+  <g clip-path="url(#term-clip)">
+    <g opacity="0">
+      <animate attributeName="opacity" dur="39.37s" values="0;0;1;1;0;0" keyTimes="0.000000;0.001270;0.005081;0.134637;0.142258;1.000000" repeatCount="indefinite"/>
+      <g>
+        <text x="20" y="67" fill="#cba6f7">      __________      ______  ____     ____  ______________________  _____</text>
+        <text x="20" y="86" fill="#cba6f7">     /  _/_  __/     / / __ \/ __ )   / __ \/ ____/ ____/ ____/ __ \/ ___/</text>
+        <text x="20" y="105" fill="#cba6f7">     / /  / /   __  / / / / / __  |  / / / / /_  / /_  / __/ / /_/ /\__ \ </text>
+        <text x="20" y="124" fill="#cba6f7">   _/ /  / /   / /_/ / /_/ / /_/ /  / /_/ / __/ / __/ / /___/ _, _/___/ / </text>
+        <text x="20" y="143" fill="#cba6f7">  /___/ /_/    \____/\____/_____/   \____/_/   /_/   /_____/_/ |_|/____/  </text>
+        <text x="20" y="162" fill="#89dceb">                 ___    _   _____    ____  _______   __________ </text>
+        <text x="20" y="181" fill="#89dceb">                /   |  / | / /   |  / /\ \/ /__  /  / ____/ __ \\</text>
+        <text x="20" y="200" fill="#89dceb">               / /| | /  |/ / /| | / /  \  /  / /  / __/ / /_/ /</text>
+        <text x="20" y="219" fill="#89dceb">              / ___ |/ /|  / ___ |/ /___/ /  / /__/ /___/ _, _/ </text>
+        <text x="20" y="238" fill="#89dceb">             /_/  |_/_/ |_/_/  |_/_____/_/  /____/_____/_/ |_|  </text>
+        <text x="20" y="257" fill="#6c7086">  ────────────────────────────────────────────────────────────────</text>
+        <text x="20" y="276" fill="#6c7086">                          salary explorer  ·  v0.1</text>
+        <text x="20" y="314" fill="#6c7086">  ╭──────────── Quick start ────────────╮</text>
+        <text x="20" y="333" fill="#6c7086">  │                                     │</text>
+        <text x="20" y="352" fill="#6c7086">  │  /analyze   salary analysis          │</text>
+        <text x="20" y="371" fill="#6c7086">  │  /top       top companies            │</text>
+        <text x="20" y="390" fill="#6c7086">  │  /benefits  B2B benefits             │</text>
+        <text x="20" y="409" fill="#6c7086">  │  /help      list commands            │</text>
+        <text x="20" y="428" fill="#6c7086">  │                                     │</text>
+        <text x="20" y="447" fill="#6c7086">  ╰──── Tab for auto-complete · ESC ────╯</text>
+        <text x="20" y="485" fill="#89dceb">  Try: /analyze Kraków python senior b2b</text>
+      </g>
+    </g>
+    <g opacity="0">
+      <animate attributeName="opacity" dur="39.37s" values="0;0;1;1;0;0" keyTimes="0.000000;0.140988;0.147339;0.321478;0.329099;1.000000" repeatCount="indefinite"/>
+      <text x="20" y="48" fill="#89dceb" font-weight="bold">❯ </text>
+      <text x="36.8" y="48" fill="#cdd6f4" opacity="0">/<animate attributeName="opacity" dur="39.37s" values="0;0;1;1;0" keyTimes="0.000000;0.140988;0.142258;0.998730;1.000000" repeatCount="indefinite"/></text>
+      <text x="45.2" y="48" fill="#cdd6f4" opacity="0">a<animate attributeName="opacity" dur="39.37s" values="0;0;1;1;0" keyTimes="0.000000;0.142385;0.143656;0.998730;1.000000" repeatCount="indefinite"/></text>
+      <text x="53.6" y="48" fill="#cdd6f4" opacity="0">n<animate attributeName="opacity" dur="39.37s" values="0;0;1;1;0" keyTimes="0.000000;0.143783;0.145053;0.998730;1.000000" repeatCount="indefinite"/></text>
+      <text x="62.0" y="48" fill="#cdd6f4" opacity="0">a<animate attributeName="opacity" dur="39.37s" values="0;0;1;1;0" keyTimes="0.000000;0.145180;0.146450;0.998730;1.000000" repeatCount="indefinite"/></text>
+      <text x="70.4" y="48" fill="#cdd6f4" opacity="0">l<animate attributeName="opacity" dur="39.37s" values="0;0;1;1;0" keyTimes="0.000000;0.146577;0.147847;0.998730;1.000000" repeatCount="indefinite"/></text>
+      <text x="78.8" y="48" fill="#cdd6f4" opacity="0">y<animate attributeName="opacity" dur="39.37s" values="0;0;1;1;0" keyTimes="0.000000;0.147974;0.149244;0.998730;1.000000" repeatCount="indefinite"/></text>
+      <text x="87.2" y="48" fill="#cdd6f4" opacity="0">z<animate attributeName="opacity" dur="39.37s" values="0;0;1;1;0" keyTimes="0.000000;0.149371;0.150641;0.998730;1.000000" repeatCount="indefinite"/></text>
+      <text x="95.6" y="48" fill="#cdd6f4" opacity="0">e<animate attributeName="opacity" dur="39.37s" values="0;0;1;1;0" keyTimes="0.000000;0.150768;0.152039;0.998730;1.000000" repeatCount="indefinite"/></text>
+      <text x="104.0" y="48" fill="#cdd6f4" opacity="0"> <animate attributeName="opacity" dur="39.37s" values="0;0;1;1;0" keyTimes="0.000000;0.152166;0.153436;0.998730;1.000000" repeatCount="indefinite"/></text>
+      <text x="112.4" y="48" fill="#cdd6f4" opacity="0">K<animate attributeName="opacity" dur="39.37s" values="0;0;1;1;0" keyTimes="0.000000;0.153563;0.154833;0.998730;1.000000" repeatCount="indefinite"/></text>
+      <text x="120.8" y="48" fill="#cdd6f4" opacity="0">r<animate attributeName="opacity" dur="39.37s" values="0;0;1;1;0" keyTimes="0.000000;0.154960;0.156230;0.998730;1.000000" repeatCount="indefinite"/></text>
+      <text x="129.2" y="48" fill="#cdd6f4" opacity="0">a<animate attributeName="opacity" dur="39.37s" values="0;0;1;1;0" keyTimes="0.000000;0.156357;0.157627;0.998730;1.000000" repeatCount="indefinite"/></text>
+      <text x="137.6" y="48" fill="#cdd6f4" opacity="0">k<animate attributeName="opacity" dur="39.37s" values="0;0;1;1;0" keyTimes="0.000000;0.157754;0.159025;0.998730;1.000000" repeatCount="indefinite"/></text>
+      <text x="146.0" y="48" fill="#cdd6f4" opacity="0">ó<animate attributeName="opacity" dur="39.37s" values="0;0;1;1;0" keyTimes="0.000000;0.159152;0.160422;0.998730;1.000000" repeatCount="indefinite"/></text>
+      <text x="154.4" y="48" fill="#cdd6f4" opacity="0">w<animate attributeName="opacity" dur="39.37s" values="0;0;1;1;0" keyTimes="0.000000;0.160549;0.161819;0.998730;1.000000" repeatCount="indefinite"/></text>
+      <text x="162.8" y="48" fill="#cdd6f4" opacity="0"> <animate attributeName="opacity" dur="39.37s" values="0;0;1;1;0" keyTimes="0.000000;0.161946;0.163216;0.998730;1.000000" repeatCount="indefinite"/></text>
+      <text x="171.2" y="48" fill="#cdd6f4" opacity="0">j<animate attributeName="opacity" dur="39.37s" values="0;0;1;1;0" keyTimes="0.000000;0.163343;0.164613;0.998730;1.000000" repeatCount="indefinite"/></text>
+      <text x="179.6" y="48" fill="#cdd6f4" opacity="0">a<animate attributeName="opacity" dur="39.37s" values="0;0;1;1;0" keyTimes="0.000000;0.164740;0.166010;0.998730;1.000000" repeatCount="indefinite"/></text>
+      <text x="188.0" y="48" fill="#cdd6f4" opacity="0">v<animate attributeName="opacity" dur="39.37s" values="0;0;1;1;0" keyTimes="0.000000;0.166137;0.167408;0.998730;1.000000" repeatCount="indefinite"/></text>
+      <text x="196.4" y="48" fill="#cdd6f4" opacity="0">a<animate attributeName="opacity" dur="39.37s" values="0;0;1;1;0" keyTimes="0.000000;0.167535;0.168805;0.998730;1.000000" repeatCount="indefinite"/></text>
+      <text x="204.8" y="48" fill="#cdd6f4" opacity="0"> <animate attributeName="opacity" dur="39.37s" values="0;0;1;1;0" keyTimes="0.000000;0.168932;0.170202;0.998730;1.000000" repeatCount="indefinite"/></text>
+      <text x="213.2" y="48" fill="#cdd6f4" opacity="0">s<animate attributeName="opacity" dur="39.37s" values="0;0;1;1;0" keyTimes="0.000000;0.170329;0.171599;0.998730;1.000000" repeatCount="indefinite"/></text>
+      <text x="221.6" y="48" fill="#cdd6f4" opacity="0">e<animate attributeName="opacity" dur="39.37s" values="0;0;1;1;0" keyTimes="0.000000;0.171726;0.172996;0.998730;1.000000" repeatCount="indefinite"/></text>
+      <text x="230.0" y="48" fill="#cdd6f4" opacity="0">n<animate attributeName="opacity" dur="39.37s" values="0;0;1;1;0" keyTimes="0.000000;0.173123;0.174393;0.998730;1.000000" repeatCount="indefinite"/></text>
+      <text x="238.4" y="48" fill="#cdd6f4" opacity="0">i<animate attributeName="opacity" dur="39.37s" values="0;0;1;1;0" keyTimes="0.000000;0.174521;0.175791;0.998730;1.000000" repeatCount="indefinite"/></text>
+      <text x="246.8" y="48" fill="#cdd6f4" opacity="0">o<animate attributeName="opacity" dur="39.37s" values="0;0;1;1;0" keyTimes="0.000000;0.175918;0.177188;0.998730;1.000000" repeatCount="indefinite"/></text>
+      <text x="255.2" y="48" fill="#cdd6f4" opacity="0">r<animate attributeName="opacity" dur="39.37s" values="0;0;1;1;0" keyTimes="0.000000;0.177315;0.178585;0.998730;1.000000" repeatCount="indefinite"/></text>
+      <text x="263.6" y="48" fill="#cdd6f4" opacity="0"> <animate attributeName="opacity" dur="39.37s" values="0;0;1;1;0" keyTimes="0.000000;0.178712;0.179982;0.998730;1.000000" repeatCount="indefinite"/></text>
+      <text x="272.0" y="48" fill="#cdd6f4" opacity="0">b<animate attributeName="opacity" dur="39.37s" values="0;0;1;1;0" keyTimes="0.000000;0.180109;0.181379;0.998730;1.000000" repeatCount="indefinite"/></text>
+      <text x="280.4" y="48" fill="#cdd6f4" opacity="0">2<animate attributeName="opacity" dur="39.37s" values="0;0;1;1;0" keyTimes="0.000000;0.181506;0.182777;0.998730;1.000000" repeatCount="indefinite"/></text>
+      <text x="288.8" y="48" fill="#cdd6f4" opacity="0">b<animate attributeName="opacity" dur="39.37s" values="0;0;1;1;0" keyTimes="0.000000;0.182904;0.184174;0.998730;1.000000" repeatCount="indefinite"/></text>
+      <rect x="36.8" y="48" width="8.4" height="16" fill="#89dceb" opacity="0" style="animation: blink 1s step-end infinite">
+        <animate attributeName="opacity" dur="39.37s" values="0;0;1;1;0;0" keyTimes="0.000000;0.140988;0.142512;0.187857;0.188111;1.000000" repeatCount="indefinite"/>
+        <animate attributeName="x" dur="39.37s" values="36.8;36.8;45.2;45.2;36.8" keyTimes="0.000000;0.142385;0.143656;0.998730;1.000000" repeatCount="indefinite"/>
+        <animate attributeName="x" dur="39.37s" values="36.8;36.8;53.6;53.6;36.8" keyTimes="0.000000;0.143783;0.145053;0.998730;1.000000" repeatCount="indefinite"/>
+        <animate attributeName="x" dur="39.37s" values="36.8;36.8;62.0;62.0;36.8" keyTimes="0.000000;0.145180;0.146450;0.998730;1.000000" repeatCount="indefinite"/>
+        <animate attributeName="x" dur="39.37s" values="36.8;36.8;70.4;70.4;36.8" keyTimes="0.000000;0.146577;0.147847;0.998730;1.000000" repeatCount="indefinite"/>
+        <animate attributeName="x" dur="39.37s" values="36.8;36.8;78.80000000000001;78.80000000000001;36.8" keyTimes="0.000000;0.147974;0.149244;0.998730;1.000000" repeatCount="indefinite"/>
+        <animate attributeName="x" dur="39.37s" values="36.8;36.8;87.2;87.2;36.8" keyTimes="0.000000;0.149371;0.150641;0.998730;1.000000" repeatCount="indefinite"/>
+        <animate attributeName="x" dur="39.37s" values="36.8;36.8;95.60000000000001;95.60000000000001;36.8" keyTimes="0.000000;0.150768;0.152039;0.998730;1.000000" repeatCount="indefinite"/>
+        <animate attributeName="x" dur="39.37s" values="36.8;36.8;104.0;104.0;36.8" keyTimes="0.000000;0.152166;0.153436;0.998730;1.000000" repeatCount="indefinite"/>
+        <animate attributeName="x" dur="39.37s" values="36.8;36.8;112.4;112.4;36.8" keyTimes="0.000000;0.153563;0.154833;0.998730;1.000000" repeatCount="indefinite"/>
+        <animate attributeName="x" dur="39.37s" values="36.8;36.8;120.80000000000001;120.80000000000001;36.8" keyTimes="0.000000;0.154960;0.156230;0.998730;1.000000" repeatCount="indefinite"/>
+        <animate attributeName="x" dur="39.37s" values="36.8;36.8;129.2;129.2;36.8" keyTimes="0.000000;0.156357;0.157627;0.998730;1.000000" repeatCount="indefinite"/>
+        <animate attributeName="x" dur="39.37s" values="36.8;36.8;137.60000000000002;137.60000000000002;36.8" keyTimes="0.000000;0.157754;0.159025;0.998730;1.000000" repeatCount="indefinite"/>
+        <animate attributeName="x" dur="39.37s" values="36.8;36.8;146.0;146.0;36.8" keyTimes="0.000000;0.159152;0.160422;0.998730;1.000000" repeatCount="indefinite"/>
+        <animate attributeName="x" dur="39.37s" values="36.8;36.8;154.4;154.4;36.8" keyTimes="0.000000;0.160549;0.161819;0.998730;1.000000" repeatCount="indefinite"/>
+        <animate attributeName="x" dur="39.37s" values="36.8;36.8;162.8;162.8;36.8" keyTimes="0.000000;0.161946;0.163216;0.998730;1.000000" repeatCount="indefinite"/>
+        <animate attributeName="x" dur="39.37s" values="36.8;36.8;171.20000000000002;171.20000000000002;36.8" keyTimes="0.000000;0.163343;0.164613;0.998730;1.000000" repeatCount="indefinite"/>
+        <animate attributeName="x" dur="39.37s" values="36.8;36.8;179.6;179.6;36.8" keyTimes="0.000000;0.164740;0.166010;0.998730;1.000000" repeatCount="indefinite"/>
+        <animate attributeName="x" dur="39.37s" values="36.8;36.8;188.0;188.0;36.8" keyTimes="0.000000;0.166137;0.167408;0.998730;1.000000" repeatCount="indefinite"/>
+        <animate attributeName="x" dur="39.37s" values="36.8;36.8;196.4;196.4;36.8" keyTimes="0.000000;0.167535;0.168805;0.998730;1.000000" repeatCount="indefinite"/>
+        <animate attributeName="x" dur="39.37s" values="36.8;36.8;204.8;204.8;36.8" keyTimes="0.000000;0.168932;0.170202;0.998730;1.000000" repeatCount="indefinite"/>
+        <animate attributeName="x" dur="39.37s" values="36.8;36.8;213.20000000000002;213.20000000000002;36.8" keyTimes="0.000000;0.170329;0.171599;0.998730;1.000000" repeatCount="indefinite"/>
+        <animate attributeName="x" dur="39.37s" values="36.8;36.8;221.60000000000002;221.60000000000002;36.8" keyTimes="0.000000;0.171726;0.172996;0.998730;1.000000" repeatCount="indefinite"/>
+        <animate attributeName="x" dur="39.37s" values="36.8;36.8;230.0;230.0;36.8" keyTimes="0.000000;0.173123;0.174393;0.998730;1.000000" repeatCount="indefinite"/>
+        <animate attributeName="x" dur="39.37s" values="36.8;36.8;238.4;238.4;36.8" keyTimes="0.000000;0.174521;0.175791;0.998730;1.000000" repeatCount="indefinite"/>
+        <animate attributeName="x" dur="39.37s" values="36.8;36.8;246.8;246.8;36.8" keyTimes="0.000000;0.175918;0.177188;0.998730;1.000000" repeatCount="indefinite"/>
+        <animate attributeName="x" dur="39.37s" values="36.8;36.8;255.20000000000002;255.20000000000002;36.8" keyTimes="0.000000;0.177315;0.178585;0.998730;1.000000" repeatCount="indefinite"/>
+        <animate attributeName="x" dur="39.37s" values="36.8;36.8;263.6;263.6;36.8" keyTimes="0.000000;0.178712;0.179982;0.998730;1.000000" repeatCount="indefinite"/>
+        <animate attributeName="x" dur="39.37s" values="36.8;36.8;272.0;272.0;36.8" keyTimes="0.000000;0.180109;0.181379;0.998730;1.000000" repeatCount="indefinite"/>
+        <animate attributeName="x" dur="39.37s" values="36.8;36.8;280.40000000000003;280.40000000000003;36.8" keyTimes="0.000000;0.181506;0.182777;0.998730;1.000000" repeatCount="indefinite"/>
+        <animate attributeName="x" dur="39.37s" values="36.8;36.8;288.8;288.8;36.8" keyTimes="0.000000;0.182904;0.184174;0.998730;1.000000" repeatCount="indefinite"/>
+        <animate attributeName="x" dur="39.37s" values="36.8;36.8;297.2;297.2;36.8" keyTimes="0.000000;0.184301;0.185571;0.998730;1.000000" repeatCount="indefinite"/>
+      </rect>
+      <g opacity="0">
+        <animate attributeName="opacity" dur="39.37s" values="0;0;1;1;0;0" keyTimes="0.000000;0.193192;0.200813;0.328845;0.329099;1.000000" repeatCount="indefinite"/>
+        <text x="20" y="86" fill="#89dceb">  Fetching offers: Kraków · java · senior</text>
+        <text x="20" y="105" fill="#a6e3a1">  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━  142/142  100%</text>
+        <text x="20" y="143" fill="#cba6f7">  ╭──────────────── Summary — B2B ─────────────────╮</text>
+        <text x="20" y="162" fill="#cba6f7">  │                                                │</text>
+        <text x="20" y="181" fill="#cdd6f4">  │  Total offers    142                           │</text>
+        <text x="20" y="200" fill="#cdd6f4">  │  With salary     118                           │</text>
+        <text x="20" y="219" fill="#cdd6f4">  │  Without salary   24                           │</text>
+        <text x="20" y="238" fill="#cdd6f4">  │                                                │</text>
+        <text x="20" y="257" fill="#ffffff">  │  Median — lower  19,600 PLN                    │</text>
+        <text x="20" y="276" fill="#ffffff">  │  Median — upper  27,200 PLN                    │</text>
+        <text x="20" y="295" fill="#ffffff">  │  Median — mid    23,400 PLN                    │</text>
+        <text x="20" y="314" fill="#cba6f7">  │                                                │</text>
+        <text x="20" y="333" fill="#cba6f7">  ╰────────────────────────────────────────────────╯</text>
+        <text x="20" y="371" fill="#cba6f7">          Percentiles — B2B</text>
+        <text x="20" y="390" fill="#6c7086">  ─────────────────────────────────────────────────</text>
+        <text x="20" y="409" fill="#89dceb">    P10    14,000 PLN    12   ██████░░░░░░░░░░░░░░</text>
+        <text x="20" y="428" fill="#89dceb">    P25    17,640 PLN    30   ████████░░░░░░░░░░░░</text>
+        <text x="20" y="447" fill="#89dceb">    P50    23,400 PLN    59   ██████████░░░░░░░░░░</text>
+        <text x="20" y="466" fill="#89dceb">    P75    29,400 PLN    89   █████████████░░░░░░░</text>
+        <text x="20" y="485" fill="#89dceb">    P90    37,800 PLN   106   ████████████████░░░░</text>
+        <text x="20" y="504" fill="#89dceb">    P95    42,000 PLN   112   ██████████████████░░</text>
+        <text x="20" y="523" fill="#89dceb">    P99    53,200 PLN   117   ████████████████████</text>
+      </g>
+    </g>
+    <g opacity="0">
+      <animate attributeName="opacity" dur="39.37s" values="0;0;1;1;0;0" keyTimes="0.000000;0.327829;0.334180;0.478979;0.486600;1.000000" repeatCount="indefinite"/>
+      <text x="20" y="48" fill="#89dceb" font-weight="bold">❯ </text>
+      <text x="36.8" y="48" fill="#cdd6f4" opacity="0">/<animate attributeName="opacity" dur="39.37s" values="0;0;1;1;0" keyTimes="0.000000;0.327829;0.329099;0.998730;1.000000" repeatCount="indefinite"/></text>
+      <text x="45.2" y="48" fill="#cdd6f4" opacity="0">c<animate attributeName="opacity" dur="39.37s" values="0;0;1;1;0" keyTimes="0.000000;0.329226;0.330497;0.998730;1.000000" repeatCount="indefinite"/></text>
+      <text x="53.6" y="48" fill="#cdd6f4" opacity="0">o<animate attributeName="opacity" dur="39.37s" values="0;0;1;1;0" keyTimes="0.000000;0.330624;0.331894;0.998730;1.000000" repeatCount="indefinite"/></text>
+      <text x="62.0" y="48" fill="#cdd6f4" opacity="0">m<animate attributeName="opacity" dur="39.37s" values="0;0;1;1;0" keyTimes="0.000000;0.332021;0.333291;0.998730;1.000000" repeatCount="indefinite"/></text>
+      <text x="70.4" y="48" fill="#cdd6f4" opacity="0">p<animate attributeName="opacity" dur="39.37s" values="0;0;1;1;0" keyTimes="0.000000;0.333418;0.334688;0.998730;1.000000" repeatCount="indefinite"/></text>
+      <text x="78.8" y="48" fill="#cdd6f4" opacity="0">a<animate attributeName="opacity" dur="39.37s" values="0;0;1;1;0" keyTimes="0.000000;0.334815;0.336085;0.998730;1.000000" repeatCount="indefinite"/></text>
+      <text x="87.2" y="48" fill="#cdd6f4" opacity="0">n<animate attributeName="opacity" dur="39.37s" values="0;0;1;1;0" keyTimes="0.000000;0.336212;0.337483;0.998730;1.000000" repeatCount="indefinite"/></text>
+      <text x="95.6" y="48" fill="#cdd6f4" opacity="0">i<animate attributeName="opacity" dur="39.37s" values="0;0;1;1;0" keyTimes="0.000000;0.337610;0.338880;0.998730;1.000000" repeatCount="indefinite"/></text>
+      <text x="104.0" y="48" fill="#cdd6f4" opacity="0">e<animate attributeName="opacity" dur="39.37s" values="0;0;1;1;0" keyTimes="0.000000;0.339007;0.340277;0.998730;1.000000" repeatCount="indefinite"/></text>
+      <text x="112.4" y="48" fill="#cdd6f4" opacity="0">s<animate attributeName="opacity" dur="39.37s" values="0;0;1;1;0" keyTimes="0.000000;0.340404;0.341674;0.998730;1.000000" repeatCount="indefinite"/></text>
+      <rect x="36.8" y="48" width="8.4" height="16" fill="#89dceb" opacity="0" style="animation: blink 1s step-end infinite">
+        <animate attributeName="opacity" dur="39.37s" values="0;0;1;1;0;0" keyTimes="0.000000;0.327829;0.329353;0.345358;0.345612;1.000000" repeatCount="indefinite"/>
+        <animate attributeName="x" dur="39.37s" values="36.8;36.8;45.2;45.2;36.8" keyTimes="0.000000;0.329226;0.330497;0.998730;1.000000" repeatCount="indefinite"/>
+        <animate attributeName="x" dur="39.37s" values="36.8;36.8;53.6;53.6;36.8" keyTimes="0.000000;0.330624;0.331894;0.998730;1.000000" repeatCount="indefinite"/>
+        <animate attributeName="x" dur="39.37s" values="36.8;36.8;62.0;62.0;36.8" keyTimes="0.000000;0.332021;0.333291;0.998730;1.000000" repeatCount="indefinite"/>
+        <animate attributeName="x" dur="39.37s" values="36.8;36.8;70.4;70.4;36.8" keyTimes="0.000000;0.333418;0.334688;0.998730;1.000000" repeatCount="indefinite"/>
+        <animate attributeName="x" dur="39.37s" values="36.8;36.8;78.80000000000001;78.80000000000001;36.8" keyTimes="0.000000;0.334815;0.336085;0.998730;1.000000" repeatCount="indefinite"/>
+        <animate attributeName="x" dur="39.37s" values="36.8;36.8;87.2;87.2;36.8" keyTimes="0.000000;0.336212;0.337483;0.998730;1.000000" repeatCount="indefinite"/>
+        <animate attributeName="x" dur="39.37s" values="36.8;36.8;95.60000000000001;95.60000000000001;36.8" keyTimes="0.000000;0.337610;0.338880;0.998730;1.000000" repeatCount="indefinite"/>
+        <animate attributeName="x" dur="39.37s" values="36.8;36.8;104.0;104.0;36.8" keyTimes="0.000000;0.339007;0.340277;0.998730;1.000000" repeatCount="indefinite"/>
+        <animate attributeName="x" dur="39.37s" values="36.8;36.8;112.4;112.4;36.8" keyTimes="0.000000;0.340404;0.341674;0.998730;1.000000" repeatCount="indefinite"/>
+        <animate attributeName="x" dur="39.37s" values="36.8;36.8;120.80000000000001;120.80000000000001;36.8" keyTimes="0.000000;0.341801;0.343071;0.998730;1.000000" repeatCount="indefinite"/>
+      </rect>
+      <g opacity="0">
+        <animate attributeName="opacity" dur="39.37s" values="0;0;1;1;0;0" keyTimes="0.000000;0.350692;0.358313;0.486346;0.486600;1.000000" repeatCount="indefinite"/>
+        <text x="20" y="86" fill="#cba6f7">              Companies (87)</text>
+        <text x="20" y="105" fill="#6c7086">  ─────────────────────────────────────────────</text>
+        <text x="20" y="124" fill="#6c7086">    #   Company                  Offers</text>
+        <text x="20" y="143" fill="#ffffff">    1   Netronic Systems              8</text>
+        <text x="20" y="162" fill="#cdd6f4">    2   Veltora                       6</text>
+        <text x="20" y="181" fill="#cdd6f4">    3   Crestbridge IT                5</text>
+        <text x="20" y="200" fill="#cdd6f4">    4   Synelion                      5</text>
+        <text x="20" y="219" fill="#cdd6f4">    5   Gridware Poland               4</text>
+        <text x="20" y="238" fill="#cdd6f4">    6   Quantivo                      4</text>
+        <text x="20" y="257" fill="#cdd6f4">    7   Orbisek                       3</text>
+        <text x="20" y="276" fill="#cdd6f4">    8   Pulsarix Solutions            3</text>
+        <text x="20" y="295" fill="#cdd6f4">    9   Teravon                       3</text>
+        <text x="20" y="314" fill="#cdd6f4">   10   Infostellar                   3</text>
+        <text x="20" y="333" fill="#cdd6f4">   11   Moduly                        2</text>
+        <text x="20" y="352" fill="#cdd6f4">   12   CoreBit Group                 2</text>
+        <text x="20" y="371" fill="#6c7086">        …</text>
+        <text x="20" y="409" fill="#6c7086">  Use /show &lt;company&gt; to see offer details</text>
+      </g>
+    </g>
+    <g opacity="0">
+      <animate attributeName="opacity" dur="39.37s" values="0;0;1;1;0;0" keyTimes="0.000000;0.485330;0.491680;0.642068;0.649689;1.000000" repeatCount="indefinite"/>
+      <text x="20" y="48" fill="#89dceb" font-weight="bold">❯ </text>
+      <text x="36.8" y="48" fill="#cdd6f4" opacity="0">/<animate attributeName="opacity" dur="39.37s" values="0;0;1;1;0" keyTimes="0.000000;0.485330;0.486600;0.998730;1.000000" repeatCount="indefinite"/></text>
+      <text x="45.2" y="48" fill="#cdd6f4" opacity="0">s<animate attributeName="opacity" dur="39.37s" values="0;0;1;1;0" keyTimes="0.000000;0.486727;0.487997;0.998730;1.000000" repeatCount="indefinite"/></text>
+      <text x="53.6" y="48" fill="#cdd6f4" opacity="0">h<animate attributeName="opacity" dur="39.37s" values="0;0;1;1;0" keyTimes="0.000000;0.488124;0.489394;0.998730;1.000000" repeatCount="indefinite"/></text>
+      <text x="62.0" y="48" fill="#cdd6f4" opacity="0">o<animate attributeName="opacity" dur="39.37s" values="0;0;1;1;0" keyTimes="0.000000;0.489521;0.490791;0.998730;1.000000" repeatCount="indefinite"/></text>
+      <text x="70.4" y="48" fill="#cdd6f4" opacity="0">w<animate attributeName="opacity" dur="39.37s" values="0;0;1;1;0" keyTimes="0.000000;0.490918;0.492188;0.998730;1.000000" repeatCount="indefinite"/></text>
+      <text x="78.8" y="48" fill="#cdd6f4" opacity="0"> <animate attributeName="opacity" dur="39.37s" values="0;0;1;1;0" keyTimes="0.000000;0.492316;0.493586;0.998730;1.000000" repeatCount="indefinite"/></text>
+      <text x="87.2" y="48" fill="#cdd6f4" opacity="0">N<animate attributeName="opacity" dur="39.37s" values="0;0;1;1;0" keyTimes="0.000000;0.493713;0.494983;0.998730;1.000000" repeatCount="indefinite"/></text>
+      <text x="95.6" y="48" fill="#cdd6f4" opacity="0">e<animate attributeName="opacity" dur="39.37s" values="0;0;1;1;0" keyTimes="0.000000;0.495110;0.496380;0.998730;1.000000" repeatCount="indefinite"/></text>
+      <text x="104.0" y="48" fill="#cdd6f4" opacity="0">t<animate attributeName="opacity" dur="39.37s" values="0;0;1;1;0" keyTimes="0.000000;0.496507;0.497777;0.998730;1.000000" repeatCount="indefinite"/></text>
+      <text x="112.4" y="48" fill="#cdd6f4" opacity="0">r<animate attributeName="opacity" dur="39.37s" values="0;0;1;1;0" keyTimes="0.000000;0.497904;0.499174;0.998730;1.000000" repeatCount="indefinite"/></text>
+      <text x="120.8" y="48" fill="#cdd6f4" opacity="0">o<animate attributeName="opacity" dur="39.37s" values="0;0;1;1;0" keyTimes="0.000000;0.499301;0.500572;0.998730;1.000000" repeatCount="indefinite"/></text>
+      <text x="129.2" y="48" fill="#cdd6f4" opacity="0">n<animate attributeName="opacity" dur="39.37s" values="0;0;1;1;0" keyTimes="0.000000;0.500699;0.501969;0.998730;1.000000" repeatCount="indefinite"/></text>
+      <text x="137.6" y="48" fill="#cdd6f4" opacity="0">i<animate attributeName="opacity" dur="39.37s" values="0;0;1;1;0" keyTimes="0.000000;0.502096;0.503366;0.998730;1.000000" repeatCount="indefinite"/></text>
+      <text x="146.0" y="48" fill="#cdd6f4" opacity="0">c<animate attributeName="opacity" dur="39.37s" values="0;0;1;1;0" keyTimes="0.000000;0.503493;0.504763;0.998730;1.000000" repeatCount="indefinite"/></text>
+      <rect x="36.8" y="48" width="8.4" height="16" fill="#89dceb" opacity="0" style="animation: blink 1s step-end infinite">
+        <animate attributeName="opacity" dur="39.37s" values="0;0;1;1;0;0" keyTimes="0.000000;0.485330;0.486854;0.508447;0.508701;1.000000" repeatCount="indefinite"/>
+        <animate attributeName="x" dur="39.37s" values="36.8;36.8;45.2;45.2;36.8" keyTimes="0.000000;0.486727;0.487997;0.998730;1.000000" repeatCount="indefinite"/>
+        <animate attributeName="x" dur="39.37s" values="36.8;36.8;53.6;53.6;36.8" keyTimes="0.000000;0.488124;0.489394;0.998730;1.000000" repeatCount="indefinite"/>
+        <animate attributeName="x" dur="39.37s" values="36.8;36.8;62.0;62.0;36.8" keyTimes="0.000000;0.489521;0.490791;0.998730;1.000000" repeatCount="indefinite"/>
+        <animate attributeName="x" dur="39.37s" values="36.8;36.8;70.4;70.4;36.8" keyTimes="0.000000;0.490918;0.492188;0.998730;1.000000" repeatCount="indefinite"/>
+        <animate attributeName="x" dur="39.37s" values="36.8;36.8;78.80000000000001;78.80000000000001;36.8" keyTimes="0.000000;0.492316;0.493586;0.998730;1.000000" repeatCount="indefinite"/>
+        <animate attributeName="x" dur="39.37s" values="36.8;36.8;87.2;87.2;36.8" keyTimes="0.000000;0.493713;0.494983;0.998730;1.000000" repeatCount="indefinite"/>
+        <animate attributeName="x" dur="39.37s" values="36.8;36.8;95.60000000000001;95.60000000000001;36.8" keyTimes="0.000000;0.495110;0.496380;0.998730;1.000000" repeatCount="indefinite"/>
+        <animate attributeName="x" dur="39.37s" values="36.8;36.8;104.0;104.0;36.8" keyTimes="0.000000;0.496507;0.497777;0.998730;1.000000" repeatCount="indefinite"/>
+        <animate attributeName="x" dur="39.37s" values="36.8;36.8;112.4;112.4;36.8" keyTimes="0.000000;0.497904;0.499174;0.998730;1.000000" repeatCount="indefinite"/>
+        <animate attributeName="x" dur="39.37s" values="36.8;36.8;120.80000000000001;120.80000000000001;36.8" keyTimes="0.000000;0.499301;0.500572;0.998730;1.000000" repeatCount="indefinite"/>
+        <animate attributeName="x" dur="39.37s" values="36.8;36.8;129.2;129.2;36.8" keyTimes="0.000000;0.500699;0.501969;0.998730;1.000000" repeatCount="indefinite"/>
+        <animate attributeName="x" dur="39.37s" values="36.8;36.8;137.60000000000002;137.60000000000002;36.8" keyTimes="0.000000;0.502096;0.503366;0.998730;1.000000" repeatCount="indefinite"/>
+        <animate attributeName="x" dur="39.37s" values="36.8;36.8;146.0;146.0;36.8" keyTimes="0.000000;0.503493;0.504763;0.998730;1.000000" repeatCount="indefinite"/>
+        <animate attributeName="x" dur="39.37s" values="36.8;36.8;154.4;154.4;36.8" keyTimes="0.000000;0.504890;0.506160;0.998730;1.000000" repeatCount="indefinite"/>
+      </rect>
+      <g opacity="0">
+        <animate attributeName="opacity" dur="39.37s" values="0;0;1;1;0;0" keyTimes="0.000000;0.513781;0.521402;0.649435;0.649689;1.000000" repeatCount="indefinite"/>
+        <text x="20" y="86" fill="#cba6f7">              Netronic Systems — 8 offers</text>
+        <text x="20" y="105" fill="#6c7086">  ───────────────────────────────────────────────────────────────────</text>
+        <text x="20" y="124" fill="#6c7086">  Title                    Level   City    From/mo   vs med    To/mo    vs med</text>
+        <text x="20" y="143" fill="#cdd6f4">  Senior Java Developer    senior  Kraków  21,000   +1,400   29,400   +2,200  b2b</text>
+        <text x="20" y="162" fill="#a6e3a1">  Senior Java Engineer     senior  Kraków  24,000   +4,400   33,600   +6,400  b2b</text>
+        <text x="20" y="181" fill="#cdd6f4">  Senior Fullstack Dev     senior  Kraków  20,000     +400   28,000     +800  b2b</text>
+        <text x="20" y="200" fill="#a6e3a1">  Senior Java Architect    senior  Kraków  28,000   +8,400   42,000  +14,800  b2b</text>
+        <text x="20" y="219" fill="#f38ba8">  Senior Spring Dev        senior  Kraków  18,000   -1,600   25,200   -2,000  b2b</text>
+        <text x="20" y="238" fill="#a6e3a1">  Senior Backend Dev       senior  Kraków  22,400   +2,800   30,800   +3,600  b2b</text>
+        <text x="20" y="257" fill="#a6e3a1">  Senior Java Tech Lead    senior  Kraków  30,000  +10,400   44,800  +17,600  b2b</text>
+        <text x="20" y="276" fill="#6c7086">  Senior Java Dev          senior  Kraków  19,600       —    27,200       —   b2b</text>
+      </g>
+    </g>
+    <g opacity="0">
+      <animate attributeName="opacity" dur="39.37s" values="0;0;1;1;0;0" keyTimes="0.000000;0.648419;0.654769;0.803760;0.811381;1.000000" repeatCount="indefinite"/>
+      <text x="20" y="48" fill="#89dceb" font-weight="bold">❯ </text>
+      <text x="36.8" y="48" fill="#cdd6f4" opacity="0">/<animate attributeName="opacity" dur="39.37s" values="0;0;1;1;0" keyTimes="0.000000;0.648419;0.649689;0.998730;1.000000" repeatCount="indefinite"/></text>
+      <text x="45.2" y="48" fill="#cdd6f4" opacity="0">t<animate attributeName="opacity" dur="39.37s" values="0;0;1;1;0" keyTimes="0.000000;0.649816;0.651086;0.998730;1.000000" repeatCount="indefinite"/></text>
+      <text x="53.6" y="48" fill="#cdd6f4" opacity="0">o<animate attributeName="opacity" dur="39.37s" values="0;0;1;1;0" keyTimes="0.000000;0.651213;0.652483;0.998730;1.000000" repeatCount="indefinite"/></text>
+      <text x="62.0" y="48" fill="#cdd6f4" opacity="0">p<animate attributeName="opacity" dur="39.37s" values="0;0;1;1;0" keyTimes="0.000000;0.652610;0.653880;0.998730;1.000000" repeatCount="indefinite"/></text>
+      <text x="70.4" y="48" fill="#cdd6f4" opacity="0"> <animate attributeName="opacity" dur="39.37s" values="0;0;1;1;0" keyTimes="0.000000;0.654007;0.655278;0.998730;1.000000" repeatCount="indefinite"/></text>
+      <text x="78.8" y="48" fill="#cdd6f4" opacity="0">b<animate attributeName="opacity" dur="39.37s" values="0;0;1;1;0" keyTimes="0.000000;0.655405;0.656675;0.998730;1.000000" repeatCount="indefinite"/></text>
+      <text x="87.2" y="48" fill="#cdd6f4" opacity="0">2<animate attributeName="opacity" dur="39.37s" values="0;0;1;1;0" keyTimes="0.000000;0.656802;0.658072;0.998730;1.000000" repeatCount="indefinite"/></text>
+      <text x="95.6" y="48" fill="#cdd6f4" opacity="0">b<animate attributeName="opacity" dur="39.37s" values="0;0;1;1;0" keyTimes="0.000000;0.658199;0.659469;0.998730;1.000000" repeatCount="indefinite"/></text>
+      <text x="104.0" y="48" fill="#cdd6f4" opacity="0"> <animate attributeName="opacity" dur="39.37s" values="0;0;1;1;0" keyTimes="0.000000;0.659596;0.660866;0.998730;1.000000" repeatCount="indefinite"/></text>
+      <text x="112.4" y="48" fill="#cdd6f4" opacity="0">&gt;<animate attributeName="opacity" dur="39.37s" values="0;0;1;1;0" keyTimes="0.000000;0.660993;0.662263;0.998730;1.000000" repeatCount="indefinite"/></text>
+      <text x="120.8" y="48" fill="#cdd6f4" opacity="0">P<animate attributeName="opacity" dur="39.37s" values="0;0;1;1;0" keyTimes="0.000000;0.662390;0.663661;0.998730;1.000000" repeatCount="indefinite"/></text>
+      <text x="129.2" y="48" fill="#cdd6f4" opacity="0">7<animate attributeName="opacity" dur="39.37s" values="0;0;1;1;0" keyTimes="0.000000;0.663788;0.665058;0.998730;1.000000" repeatCount="indefinite"/></text>
+      <text x="137.6" y="48" fill="#cdd6f4" opacity="0">5<animate attributeName="opacity" dur="39.37s" values="0;0;1;1;0" keyTimes="0.000000;0.665185;0.666455;0.998730;1.000000" repeatCount="indefinite"/></text>
+      <rect x="36.8" y="48" width="8.4" height="16" fill="#89dceb" opacity="0" style="animation: blink 1s step-end infinite">
+        <animate attributeName="opacity" dur="39.37s" values="0;0;1;1;0;0" keyTimes="0.000000;0.648419;0.649943;0.670138;0.670392;1.000000" repeatCount="indefinite"/>
+        <animate attributeName="x" dur="39.37s" values="36.8;36.8;45.2;45.2;36.8" keyTimes="0.000000;0.649816;0.651086;0.998730;1.000000" repeatCount="indefinite"/>
+        <animate attributeName="x" dur="39.37s" values="36.8;36.8;53.6;53.6;36.8" keyTimes="0.000000;0.651213;0.652483;0.998730;1.000000" repeatCount="indefinite"/>
+        <animate attributeName="x" dur="39.37s" values="36.8;36.8;62.0;62.0;36.8" keyTimes="0.000000;0.652610;0.653880;0.998730;1.000000" repeatCount="indefinite"/>
+        <animate attributeName="x" dur="39.37s" values="36.8;36.8;70.4;70.4;36.8" keyTimes="0.000000;0.654007;0.655278;0.998730;1.000000" repeatCount="indefinite"/>
+        <animate attributeName="x" dur="39.37s" values="36.8;36.8;78.80000000000001;78.80000000000001;36.8" keyTimes="0.000000;0.655405;0.656675;0.998730;1.000000" repeatCount="indefinite"/>
+        <animate attributeName="x" dur="39.37s" values="36.8;36.8;87.2;87.2;36.8" keyTimes="0.000000;0.656802;0.658072;0.998730;1.000000" repeatCount="indefinite"/>
+        <animate attributeName="x" dur="39.37s" values="36.8;36.8;95.60000000000001;95.60000000000001;36.8" keyTimes="0.000000;0.658199;0.659469;0.998730;1.000000" repeatCount="indefinite"/>
+        <animate attributeName="x" dur="39.37s" values="36.8;36.8;104.0;104.0;36.8" keyTimes="0.000000;0.659596;0.660866;0.998730;1.000000" repeatCount="indefinite"/>
+        <animate attributeName="x" dur="39.37s" values="36.8;36.8;112.4;112.4;36.8" keyTimes="0.000000;0.660993;0.662263;0.998730;1.000000" repeatCount="indefinite"/>
+        <animate attributeName="x" dur="39.37s" values="36.8;36.8;120.80000000000001;120.80000000000001;36.8" keyTimes="0.000000;0.662390;0.663661;0.998730;1.000000" repeatCount="indefinite"/>
+        <animate attributeName="x" dur="39.37s" values="36.8;36.8;129.2;129.2;36.8" keyTimes="0.000000;0.663788;0.665058;0.998730;1.000000" repeatCount="indefinite"/>
+        <animate attributeName="x" dur="39.37s" values="36.8;36.8;137.60000000000002;137.60000000000002;36.8" keyTimes="0.000000;0.665185;0.666455;0.998730;1.000000" repeatCount="indefinite"/>
+        <animate attributeName="x" dur="39.37s" values="36.8;36.8;146.0;146.0;36.8" keyTimes="0.000000;0.666582;0.667852;0.998730;1.000000" repeatCount="indefinite"/>
+      </rect>
+      <g opacity="0">
+        <animate attributeName="opacity" dur="39.37s" values="0;0;1;1;0;0" keyTimes="0.000000;0.675473;0.683094;0.811127;0.811381;1.000000" repeatCount="indefinite"/>
+        <text x="20" y="86" fill="#cba6f7">     Companies &gt; P75 (29,400 PLN) — B2B</text>
+        <text x="20" y="105" fill="#6c7086">  ──────────────────────────────────────────────────</text>
+        <text x="20" y="124" fill="#6c7086">  Company                 Offers     Min        Max</text>
+        <text x="20" y="143" fill="#ffffff">  Netronic Systems            3  28,000     44,800</text>
+        <text x="20" y="162" fill="#cdd6f4">  Quantivo                    2  31,500     39,200</text>
+        <text x="20" y="181" fill="#cdd6f4">  Synelion                    2  30,800     37,800</text>
+        <text x="20" y="200" fill="#cdd6f4">  Veltora                     2  29,400     35,000</text>
+        <text x="20" y="219" fill="#cdd6f4">  Teravon                     1  33,600     33,600</text>
+        <text x="20" y="238" fill="#cdd6f4">  Orbisek                     1  31,500     31,500</text>
+        <text x="20" y="257" fill="#cdd6f4">  Pulsarix Solutions          1  30,100     30,100</text>
+        <text x="20" y="295" fill="#cba6f7">     Offer details &gt; P75 — B2B</text>
+        <text x="20" y="314" fill="#6c7086">  ──────────────────────────────────────────────────────────────────</text>
+        <text x="20" y="333" fill="#6c7086">     Mid     From       To    Company               Title</text>
+        <text x="20" y="352" fill="#ffffff">  37,400   30,000   44,800    Netronic Systems      Sr Java Tech Lead</text>
+        <text x="20" y="371" fill="#cdd6f4">  35,000   28,000   42,000    Netronic Systems      Sr Java Architect</text>
+        <text x="20" y="390" fill="#cdd6f4">  35,350   31,500   39,200    Quantivo              Senior Java Dev</text>
+        <text x="20" y="409" fill="#cdd6f4">  34,300   30,800   37,800    Synelion              Sr Platform Eng</text>
+        <text x="20" y="428" fill="#cdd6f4">  33,600   33,600   33,600    Teravon               Senior Backend Dev</text>
+        <text x="20" y="447" fill="#cdd6f4">  32,200   29,400   35,000    Veltora               Senior Java Dev</text>
+        <text x="20" y="466" fill="#cdd6f4">  31,500   31,500   31,500    Orbisek               Sr Java Engineer</text>
+        <text x="20" y="485" fill="#cdd6f4">  30,100   30,100   30,100    Pulsarix Solutions    Sr Embedded Dev</text>
+        <text x="20" y="504" fill="#cdd6f4">  28,800   24,000   33,600    Netronic Systems      Senior Java Eng</text>
+      </g>
+    </g>
+    <g opacity="0">
+      <animate attributeName="opacity" dur="39.37s" values="0;0;1;1;0;0" keyTimes="0.000000;0.810111;0.816461;0.954274;0.961895;1.000000" repeatCount="indefinite"/>
+      <text x="20" y="48" fill="#89dceb" font-weight="bold">❯ </text>
+      <text x="36.8" y="48" fill="#cdd6f4" opacity="0">/<animate attributeName="opacity" dur="39.37s" values="0;0;1;1;0" keyTimes="0.000000;0.810111;0.811381;0.998730;1.000000" repeatCount="indefinite"/></text>
+      <text x="45.2" y="48" fill="#cdd6f4" opacity="0">q<animate attributeName="opacity" dur="39.37s" values="0;0;1;1;0" keyTimes="0.000000;0.811508;0.812778;0.998730;1.000000" repeatCount="indefinite"/></text>
+      <text x="53.6" y="48" fill="#cdd6f4" opacity="0">u<animate attributeName="opacity" dur="39.37s" values="0;0;1;1;0" keyTimes="0.000000;0.812905;0.814175;0.998730;1.000000" repeatCount="indefinite"/></text>
+      <text x="62.0" y="48" fill="#cdd6f4" opacity="0">i<animate attributeName="opacity" dur="39.37s" values="0;0;1;1;0" keyTimes="0.000000;0.814302;0.815572;0.998730;1.000000" repeatCount="indefinite"/></text>
+      <text x="70.4" y="48" fill="#cdd6f4" opacity="0">t<animate attributeName="opacity" dur="39.37s" values="0;0;1;1;0" keyTimes="0.000000;0.815699;0.816969;0.998730;1.000000" repeatCount="indefinite"/></text>
+      <rect x="36.8" y="48" width="8.4" height="16" fill="#89dceb" opacity="0" style="animation: blink 1s step-end infinite">
+        <animate attributeName="opacity" dur="39.37s" values="0;0;1;1;0;0" keyTimes="0.000000;0.810111;0.811635;0.820653;0.820907;1.000000" repeatCount="indefinite"/>
+        <animate attributeName="x" dur="39.37s" values="36.8;36.8;45.2;45.2;36.8" keyTimes="0.000000;0.811508;0.812778;0.998730;1.000000" repeatCount="indefinite"/>
+        <animate attributeName="x" dur="39.37s" values="36.8;36.8;53.6;53.6;36.8" keyTimes="0.000000;0.812905;0.814175;0.998730;1.000000" repeatCount="indefinite"/>
+        <animate attributeName="x" dur="39.37s" values="36.8;36.8;62.0;62.0;36.8" keyTimes="0.000000;0.814302;0.815572;0.998730;1.000000" repeatCount="indefinite"/>
+        <animate attributeName="x" dur="39.37s" values="36.8;36.8;70.4;70.4;36.8" keyTimes="0.000000;0.815699;0.816969;0.998730;1.000000" repeatCount="indefinite"/>
+        <animate attributeName="x" dur="39.37s" values="36.8;36.8;78.80000000000001;78.80000000000001;36.8" keyTimes="0.000000;0.817096;0.818367;0.998730;1.000000" repeatCount="indefinite"/>
+      </rect>
+      <g opacity="0">
+        <animate attributeName="opacity" dur="39.37s" values="0;0;1;1;0;0" keyTimes="0.000000;0.825988;0.833609;0.961641;0.961895;1.000000" repeatCount="indefinite"/>
+        <text x="20" y="67" fill="#6c7086">  Goodbye!</text>
+      </g>
+    </g>
+  </g>
+</svg>

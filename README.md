@@ -2,6 +2,8 @@
 
 Analyze IT job offers from [justjoin.it](https://justjoin.it) — a Polish job board for the tech industry.
 
+![itjobs CLI demo](demo.svg)
+
 Features:
 - Filter offers by city, category, experience, workplace, employment type
 - Statistical salary analysis with percentile distribution
