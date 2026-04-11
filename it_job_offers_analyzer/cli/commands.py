@@ -554,7 +554,7 @@ def cmd_recent(args_str: str):
 
     recent = []
     for o in state.offers:
-        pub = o.get("published_at")
+        pub = o.get("last_published_at") or o.get("published_at")
         if not pub:
             continue
         try:

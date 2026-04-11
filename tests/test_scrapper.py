@@ -115,6 +115,7 @@ class TestTransformOffer:
         assert result["experience_level"] == "senior"
         assert result["workplace_type"] == "remote"
         assert result["working_time"] == "full_time"
+        assert result["last_published_at"] == "2025-01-01T12:00:00Z"
 
     def test_url_from_slug(self, make_raw_offer):
         raw = make_raw_offer(slug="my-test-slug")

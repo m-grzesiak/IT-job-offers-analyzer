@@ -97,6 +97,7 @@ def transform_offer(raw: dict, body: str | None = None) -> dict:
         "employment_types": employment,
         "languages": raw.get("languages", []),
         "published_at": raw.get("publishedAt"),
+        "last_published_at": raw.get("lastPublishedAt"),
         "expired_at": raw.get("expiredAt"),
         "url": OFFER_URL_TEMPLATE.format(slug=slug),
     }

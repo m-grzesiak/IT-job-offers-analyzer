@@ -1,6 +1,7 @@
 """Constants, command metadata, and the welcome banner."""
 
 import os
+from importlib.metadata import version as pkg_version
 
 from .. import analyzer
 from .. import scrapper
@@ -131,5 +132,5 @@ BANNER = (
     r"             /_/  |_/_/ |_/_/  |_/_____/_/  /____/_____/_/ |_|  " "\n"
     "[/]"
     "[dim]\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500[/]\n"
-    "[dim]                          salary explorer  \u00b7  v0.2[/]\n"
+    f"[dim]                          salary explorer  \u00b7  v{pkg_version('itjobs')}[/]\n"
 )

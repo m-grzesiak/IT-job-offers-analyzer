@@ -31,6 +31,7 @@ def make_raw_offer():
             employment_types=None,
             languages=None,
             published_at="2025-01-01T12:00:00Z",
+            last_published_at="2025-01-01T12:00:00Z",
             expired_at="2025-02-01T12:00:00Z",
     ):
         if employment_types is None:
@@ -56,6 +57,7 @@ def make_raw_offer():
             "employmentTypes": employment_types,
             "languages": languages or [],
             "publishedAt": published_at,
+            "lastPublishedAt": last_published_at,
             "expiredAt": expired_at,
         }
 
@@ -76,6 +78,7 @@ def make_offer():
             body=None,
             url="https://justjoin.it/job-offer/test-offer-1",
             published_at="2025-01-01T12:00:00Z",
+            last_published_at="2025-01-01T12:00:00Z",
     ):
         if employment_types is None:
             employment_types = [
@@ -99,6 +102,7 @@ def make_offer():
             "employment_types": employment_types,
             "languages": [],
             "published_at": published_at,
+            "last_published_at": last_published_at,
             "expired_at": "2025-02-01T12:00:00Z",
             "url": url,
         }

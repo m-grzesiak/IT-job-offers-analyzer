@@ -283,8 +283,8 @@ class TestCmdRecent:
     @patch("it_job_offers_analyzer.cli.commands.ensure_data", return_value=True)
     def test_shows_recent_offers(self, mock_ed, clean_state, capture_console, make_offer):
         clean_state.offers = [
-            make_offer(company_name="FreshCo", published_at=_recent_ts(2)),
-            make_offer(company_name="OldCo", published_at="2020-01-01T12:00:00Z"),
+            make_offer(company_name="FreshCo", last_published_at=_recent_ts(2)),
+            make_offer(company_name="OldCo", last_published_at="2020-01-01T12:00:00Z"),
         ]
         commands.cmd_recent("")
         output = capture_console.getvalue()
@@ -294,8 +294,8 @@ class TestCmdRecent:
     @patch("it_job_offers_analyzer.cli.commands.ensure_data", return_value=True)
     def test_custom_days(self, mock_ed, clean_state, capture_console, make_offer):
         clean_state.offers = [
-            make_offer(company_name="Yesterday", published_at=_recent_ts(20)),
-            make_offer(company_name="LastWeek", published_at=_recent_ts(150)),
+            make_offer(company_name="Yesterday", last_published_at=_recent_ts(20)),
+            make_offer(company_name="LastWeek", last_published_at=_recent_ts(150)),
         ]
         # 1 day — only "Yesterday" (20h ago)
         commands.cmd_recent("1")
@@ -306,8 +306,8 @@ class TestCmdRecent:
     @patch("it_job_offers_analyzer.cli.commands.ensure_data", return_value=True)
     def test_custom_days_wider(self, mock_ed, clean_state, capture_console, make_offer):
         clean_state.offers = [
-            make_offer(company_name="Yesterday", published_at=_recent_ts(20)),
-            make_offer(company_name="LastWeek", published_at=_recent_ts(150)),
+            make_offer(company_name="Yesterday", last_published_at=_recent_ts(20)),
+            make_offer(company_name="LastWeek", last_published_at=_recent_ts(150)),
         ]
         # 7 days — both should show
         commands.cmd_recent("7")
@@ -318,7 +318,7 @@ class TestCmdRecent:
     @patch("it_job_offers_analyzer.cli.commands.ensure_data", return_value=True)
     def test_no_recent_offers(self, mock_ed, clean_state, capture_console, make_offer):
         clean_state.offers = [
-            make_offer(published_at="2020-01-01T12:00:00Z"),
+            make_offer(last_published_at="2020-01-01T12:00:00Z"),
         ]
         commands.cmd_recent("")
         output = capture_console.getvalue()
@@ -326,7 +326,7 @@ class TestCmdRecent:
 
     @patch("it_job_offers_analyzer.cli.commands.ensure_data", return_value=True)
     def test_shows_salary_info(self, mock_ed, clean_state, capture_console, make_offer):
-        clean_state.offers = [make_offer(published_at=_recent_ts(1))]
+        clean_state.offers = [make_offer(last_published_at=_recent_ts(1))]
         commands.cmd_recent("")
         output = capture_console.getvalue()
         assert "PLN" in output
@@ -335,11 +335,25 @@ class TestCmdRecent:
     def test_days_with_filters(self, mock_ed, clean_state, capture_console, make_offer):
         """Days argument should be extracted; remaining args passed to parse_args."""
         clean_state.offers = [
-            make_offer(company_name="Recent", published_at=_recent_ts(5)),
+            make_offer(company_name="Recent", last_published_at=_recent_ts(5)),
         ]
         commands.cmd_recent("7 b2b")
         output = capture_console.getvalue()
         assert "Recent" in output
+
+    @patch("it_job_offers_analyzer.cli.commands.ensure_data", return_value=True)
+    def test_uses_last_published_at_not_published_at(self, mock_ed, clean_state, capture_console, make_offer):
+        """Offer bumped recently (published_at=now) but originally old should NOT appear."""
+        clean_state.offers = [
+            make_offer(
+                company_name="BumpedCo",
+                published_at=_recent_ts(1),           # bumped 1h ago
+                last_published_at="2020-01-01T12:00:00Z",  # actually 5 years old
+            ),
+        ]
+        commands.cmd_recent("")
+        output = capture_console.getvalue()
+        assert "BumpedCo" not in output
 
     @patch("it_job_offers_analyzer.cli.commands.ensure_data", return_value=False)
     def test_ensure_data_fails(self, mock_ed, clean_state, capture_console):
