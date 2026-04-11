@@ -502,6 +502,15 @@ def fmt_salary(val: float) -> str:
     return f"{val:,.0f} PLN"
 
 
+def _fmt_delta(delta: float) -> str:
+    """Format a salary delta with color: green for positive, red for negative."""
+    if delta > 0:
+        return f"[green]+{delta:,.0f} PLN[/]"
+    if delta < 0:
+        return f"[red]{delta:,.0f} PLN[/]"
+    return "[dim]0 PLN[/]"
+
+
 def make_summary_table(salaries, total_offers):
     """Build a Rich table with salary analysis summary."""
     midpoints = sorted([analyzer.midpoint(lo, hi) for lo, hi, _ in salaries])
@@ -955,6 +964,15 @@ def cmd_show(args_str: str):
         console.print(f"  [warn]No offers found for \"{args_str.strip()}\"[/]")
         return
 
+    # Compute medians per employment type for delta columns
+    medians = {}
+    for et_type in scrapper.EMPLOYMENT_TYPES:
+        et_salaries = analyzer.extract_salaries(state.offers, et_type)
+        if et_salaries:
+            lows = sorted(lo for lo, _, _ in et_salaries)
+            highs = sorted(hi for _, hi, _ in et_salaries)
+            medians[et_type] = (statistics.median(lows), statistics.median(highs))
+
     table = Table(
         title=f"{matches[0]['company_name']} — {len(matches)} offers",
         title_style="bold magenta",
@@ -965,7 +983,9 @@ def cmd_show(args_str: str):
     table.add_column("City")
     table.add_column("Workplace")
     table.add_column("From/mo", justify="right")
+    table.add_column("vs median", justify="right")
     table.add_column("To/mo", justify="right")
+    table.add_column("vs median", justify="right")
     table.add_column("Type")
     table.add_column("Link", style="dim", no_wrap=True)
 
@@ -980,10 +1000,18 @@ def cmd_show(args_str: str):
             for et_type, et in pln_by_type.items():
                 sal_from = analyzer.normalize_monthly(et["salary_from"])
                 sal_to = analyzer.normalize_monthly(et["salary_to"])
+                delta_from = ""
+                delta_to = ""
+                if et_type in medians:
+                    med_lo, med_hi = medians[et_type]
+                    delta_from = _fmt_delta(sal_from - med_lo)
+                    delta_to = _fmt_delta(sal_to - med_hi)
                 table.add_row(
                     o["title"], o.get("experience_level", ""),
                     o.get("city", ""), o.get("workplace_type", ""),
-                    fmt_salary(sal_from), fmt_salary(sal_to), et_type or "",
+                    fmt_salary(sal_from), delta_from,
+                    fmt_salary(sal_to), delta_to,
+                    et_type or "",
                     url,
                 )
         else:
@@ -991,7 +1019,8 @@ def cmd_show(args_str: str):
             table.add_row(
                 o["title"], o.get("experience_level", ""),
                 o.get("city", ""), o.get("workplace_type", ""),
-                "[dim]-[/]", "[dim]-[/]", f"[dim]{types or '-'}[/]",
+                "[dim]-[/]", "", "[dim]-[/]", "",
+                f"[dim]{types or '-'}[/]",
                 url,
             )
 
