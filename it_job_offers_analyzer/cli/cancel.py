@@ -93,4 +93,5 @@ class CancellableProgress(Progress):
     def get_renderables(self):
         yield from super().get_renderables()
         if not self.finished:
-            yield Text("  Press ESC to cancel", style="dim")
+            from .display import C_BORDER
+            yield Text("  Press ESC to cancel", style=C_BORDER)

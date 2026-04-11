@@ -4,7 +4,6 @@ import statistics
 from collections import Counter
 from datetime import datetime, timedelta, timezone
 
-from rich.panel import Panel
 from rich.table import Table
 
 from .constants import (
@@ -13,13 +12,20 @@ from .constants import (
     COMMAND_SYNTAX,
 )
 from .display import (
+    C_BORDER,
+    C_CYAN,
+    C_GREEN,
+    C_ORANGE,
     SalaryStats,
     console,
     fmt_delta,
     fmt_salary,
+    fmt_tag,
     make_distribution_table,
+    make_panel,
     make_percentile_table,
     make_summary_table,
+    make_table,
     print_bar_chart,
 )
 from .parsing import parse_args, parse_compare_args
@@ -35,22 +41,21 @@ from .. import scrapper
 def cmd_help():
     """Show help with parameter details."""
     help_table = Table(show_header=False, box=None, padding=(0, 2))
-    help_table.add_column("cmd", style="bold cyan", no_wrap=True)
+    help_table.add_column("cmd", style=f"bold {C_CYAN}", no_wrap=True)
     help_table.add_column("desc")
     for cmd in sorted(COMMAND_SYNTAX):
         help_table.add_row(COMMAND_SYNTAX[cmd], COMMAND_DESCRIPTIONS[cmd])
 
     console.print()
-    console.print(Panel(
+    console.print(make_panel(
         help_table,
-        title="[bold]Commands[/]",
-        border_style="dim",
+        "Commands",
+        border_style=C_BORDER,
         expand=False,
-        padding=(1, 2),
     ))
 
     params_table = Table(show_header=True, box=None, padding=(0, 2))
-    params_table.add_column("Parameter", style="bold yellow", no_wrap=True)
+    params_table.add_column("Parameter", style=f"bold {C_ORANGE}", no_wrap=True)
     params_table.add_column("Values", style="dim")
     params_table.add_row("\\[city]", ", ".join(CITIES[:8]) + ", \u2026")
     params_table.add_row("\\[cat]", ", ".join(scrapper.CATEGORIES[:10]) + ", \u2026")
@@ -64,17 +69,16 @@ def cmd_help():
     params_table.add_row("\\[days]", "number of days for /recent (default: 3)")
     params_table.add_row("<company>", "company name [bold](required)[/]")
 
-    console.print(Panel(
+    console.print(make_panel(
         params_table,
-        title="[bold]Parameters[/]",
-        subtitle="[dim]\\[brackets] = optional   <angle> = required[/]",
-        border_style="dim",
+        "Parameters",
+        subtitle=f"[{C_BORDER}] \\[brackets] = optional   <angle> = required [/]",
+        border_style=C_BORDER,
         expand=False,
-        padding=(1, 2),
     ))
 
     compare_table = Table(show_header=False, box=None, padding=(0, 2))
-    compare_table.add_column("example", style="bold cyan", no_wrap=True)
+    compare_table.add_column("example", style=f"bold {C_CYAN}", no_wrap=True)
     compare_table.add_column("desc", style="dim")
     compare_table.add_row("/compare Krak\u00f3w Warszawa python senior b2b", "compare 2 cities")
     compare_table.add_row("/compare Krak\u00f3w Warszawa Wroc\u0142aw python senior", "compare 3 cities")
@@ -83,29 +87,27 @@ def cmd_help():
     compare_table.add_row("/compare Krak\u00f3w python junior senior b2b", "compare experience levels")
     compare_table.add_row("/compare Krak\u00f3w python remote office b2b", "compare workplace types")
 
-    console.print(Panel(
+    console.print(make_panel(
         compare_table,
-        title="[bold]/compare \u2014 examples[/]",
-        subtitle="[dim]pass 2+ values from one group \u00b7 rest are filters[/]",
-        border_style="dim",
+        "/compare \u2014 examples",
+        subtitle=f"[{C_BORDER}] pass 2+ values from one group \u00b7 rest are filters [/]",
+        border_style=C_BORDER,
         expand=False,
-        padding=(1, 2),
     ))
 
     recent_table = Table(show_header=False, box=None, padding=(0, 2))
-    recent_table.add_column("example", style="bold cyan", no_wrap=True)
+    recent_table.add_column("example", style=f"bold {C_CYAN}", no_wrap=True)
     recent_table.add_column("desc", style="dim")
     recent_table.add_row("/recent Krak\u00f3w python senior", "last 3 days (default)")
     recent_table.add_row("/recent 7 Krak\u00f3w python", "last 7 days")
     recent_table.add_row("/recent 1 b2b", "last 24h, B2B only")
 
-    console.print(Panel(
+    console.print(make_panel(
         recent_table,
-        title="[bold]/recent \u2014 examples[/]",
-        subtitle="[dim]\\[days] defaults to 3 \u00b7 shows per-day chart + offer list[/]",
-        border_style="dim",
+        "/recent \u2014 examples",
+        subtitle=f"[{C_BORDER}] \\[days] defaults to 3 \u00b7 shows per-day chart + offer list [/]",
+        border_style=C_BORDER,
         expand=False,
-        padding=(1, 2),
     ))
     console.print()
 
@@ -137,7 +139,7 @@ def cmd_status():
         if state.workplace:
             info.add_row("Workplace", state.workplace)
 
-        console.print(Panel(info, title="[bold]Status[/]", border_style="dim", padding=(1, 2)))
+        console.print(make_panel(info, "Status", border_style=C_BORDER))
     console.print()
 
 
@@ -171,12 +173,7 @@ def cmd_analyze(args_str: str):
         any_data = True
         label = et.upper() if et else "all types"
         console.print()
-        console.print(Panel(
-            make_summary_table(stats, total_offers),
-            title=f"[bold]Summary \u2014 {label}[/]",
-            border_style="magenta",
-            padding=(1, 2),
-        ))
+        console.print(make_panel(make_summary_table(stats, total_offers), f"Summary \u2014 {label}"))
         console.print()
         console.print(make_percentile_table(stats.midpoints, f"Percentiles \u2014 {label}"))
         console.print()
@@ -213,7 +210,6 @@ def cmd_top(args_str: str):
 
     console.print()
     console.print("  [muted]Use /show <company> to see all offers for a given company[/]")
-    console.print()
 
 
 def cmd_outliers(args_str: str):
@@ -229,10 +225,10 @@ def cmd_outliers(args_str: str):
         console.print("  [success]No outliers[/]")
         return
 
-    table = Table(
-        title=f"Detected outliers ({len(outliers)})",
-        title_style="bold yellow",
-        border_style="yellow",
+    table = make_table(
+        f"\u26a0 Detected outliers ({len(outliers)})",
+        title_style=f"bold {C_ORANGE}",
+        border_style=C_ORANGE,
     )
     table.add_column("Mid", justify="right", style="salary")
     table.add_column("From", justify="right")
@@ -295,18 +291,14 @@ def cmd_benefits(args_str: str):
     summary.add_row("Cafeteria/extras", pct(len(with_extra)))
 
     console.print()
-    console.print(Panel(summary, title="[bold]B2B Benefits[/]", border_style="magenta", padding=(1, 2)))
+    console.print(make_panel(summary, "B2B Benefits"))
 
     if with_any:
-        table = Table(
-            title="Offers with benefits",
-            title_style="bold magenta",
-            border_style="dim",
-        )
+        table = make_table("Offers with benefits")
         table.add_column("Company", style="bold", max_width=28)
-        table.add_column("Vacation", style="green")
-        table.add_column("Sick leave", style="yellow")
-        table.add_column("Extras", style="cyan")
+        table.add_column("Vacation", style=C_GREEN)
+        table.add_column("Sick leave", style=C_ORANGE)
+        table.add_column("Extras", style=C_CYAN)
         table.add_column("Title", style="dim", max_width=40)
 
         for offer, vac, sick, extra in with_any:
@@ -354,8 +346,9 @@ def cmd_progression(args_str: str):
     if workplace:
         filters.append(workplace)
     console.print()
-    console.print("  [accent]Scraping salary progression...[/]")
-    console.print(f"  [muted]Filters: {' / '.join(filters)}[/]")
+    filter_label = " [dim]·[/] ".join(f"[bold]{f}[/]" for f in filters)
+    console.rule(f"[bold {C_CYAN}]Salary Progression[/]", style=C_BORDER)
+    console.print(f"  {filter_label}")
     console.print()
 
     group_data = scrape_groups(
@@ -385,11 +378,7 @@ def cmd_progression(args_str: str):
         return
 
     type_label = f" / {emp_type.upper()}" if emp_type else ""
-    table = Table(
-        title=f"Salary Progression \u2014 {city} / {category}{type_label}",
-        title_style="bold magenta",
-        border_style="dim",
-    )
+    table = make_table(f"Salary Progression \u2014 {city} / {category}{type_label}")
     table.add_column("Level", style="bold")
     table.add_column("Offers", justify="right", style="muted")
     table.add_column("With salary", justify="right", style="muted")
@@ -452,9 +441,12 @@ def cmd_compare(args_str: str):
 
     axis_label = axis_name.replace("employment", "type")
     console.print()
-    console.print(f"  [accent]Comparing by {axis_label}: {', '.join(axis_values)}[/]")
+    values_str = f" [{C_BORDER}]vs[/] ".join(f"[bold]{v}[/]" for v in axis_values)
+    console.rule(f"[bold {C_CYAN}]Compare by {axis_label}[/]", style=C_BORDER)
+    console.print(f"  {values_str}")
     if filter_parts:
-        console.print(f"  [muted]Common filters: {' / '.join(filter_parts)}[/]")
+        filter_label = " [dim]·[/] ".join(f"[bold]{f}[/]" for f in filter_parts)
+        console.print(f"  [dim]Filters:[/] {filter_label}")
     console.print()
 
     def build_params(val):
@@ -493,11 +485,7 @@ def cmd_compare(args_str: str):
     if filter_parts:
         title += f" \u2014 {' / '.join(filter_parts)}"
 
-    table = Table(
-        title=title,
-        title_style="bold magenta",
-        border_style="dim",
-    )
+    table = make_table(title)
     table.add_column(axis_label.title(), style="bold")
     table.add_column("Offers", justify="right", style="muted")
     table.add_column("With salary", justify="right", style="muted")
@@ -585,12 +573,7 @@ def cmd_recent(args_str: str):
     summary.add_row("Recent offers", f"{len(recent)} of {total}")
 
     console.print()
-    console.print(Panel(
-        summary,
-        title="[bold]Recent Offers[/]",
-        border_style="magenta",
-        padding=(1, 2),
-    ))
+    console.print(make_panel(summary, "Recent Offers"))
 
     if len(chart_items) > 1:
         print_bar_chart(chart_items, fmt_fn=lambda v: f"{int(v)} offers")
@@ -598,29 +581,27 @@ def cmd_recent(args_str: str):
     console.print()
 
     # Offer table
-    table = Table(
-        title=f"Offers from last {days} day(s)",
-        title_style="bold magenta",
-        border_style="dim",
-    )
-    table.add_column("Age", style="accent", no_wrap=True)
+    table = make_table(f"Offers from last {days} day(s)")
+    table.add_column("Age", no_wrap=True)
     table.add_column("Company", style="bold", max_width=25)
     table.add_column("Title", max_width=35)
-    table.add_column("Level", style="muted")
+    table.add_column("Level")
     table.add_column("From/mo", justify="right")
     table.add_column("To/mo", justify="right")
-    table.add_column("Type", style="muted")
+    table.add_column("Type")
     table.add_column("Link", style="dim", no_wrap=True)
 
     for dt, o in recent:
         age = now - dt
         total_secs = age.total_seconds()
         if total_secs < 3600:
-            time_str = f"{int(total_secs / 60)}m ago"
+            time_str = f"[bold {C_GREEN}]{int(total_secs / 60)}m ago[/]"
+        elif total_secs < 43200:
+            time_str = f"[{C_CYAN}]{int(total_secs / 3600)}h ago[/]"
         elif total_secs < 86400:
-            time_str = f"{int(total_secs / 3600)}h ago"
+            time_str = f"[{C_ORANGE}]{int(total_secs / 3600)}h ago[/]"
         else:
-            time_str = f"{age.days}d ago"
+            time_str = f"[dim]{age.days}d ago[/]"
 
         ets = o.get("employment_types", [])
         sal_from_str = "[dim]-[/]"
@@ -647,13 +628,14 @@ def cmd_recent(args_str: str):
             time_str,
             o.get("company_name", ""),
             o.get("title", ""),
-            o.get("experience_level", ""),
+            fmt_tag(o.get("experience_level", "")),
             sal_from_str,
             sal_to_str,
-            type_str,
+            fmt_tag(type_str),
             o.get("url", ""),
         )
 
+    table.caption = f"[dim]{len(recent)} offers \u00b7 last {days} day(s)[/]"
     console.print(table)
     console.print()
 
@@ -665,11 +647,7 @@ def cmd_companies():
 
     counts = Counter(o.get("company_name", "?") for o in state.offers)
 
-    table = Table(
-        title=f"Companies ({len(counts)})",
-        title_style="bold magenta",
-        border_style="dim",
-    )
+    table = make_table(f"Companies ({len(counts)})")
     table.add_column("#", justify="right", style="muted")
     table.add_column("Company", style="bold")
     table.add_column("Offers", justify="right", style="accent")
@@ -677,10 +655,9 @@ def cmd_companies():
     for i, (company, count) in enumerate(counts.most_common(), 1):
         table.add_row(str(i), company, str(count))
 
+    table.caption = "[dim]Use /show <company> to see offer details[/]"
     console.print()
     console.print(table)
-    console.print()
-    console.print("  [muted]Use /show <company> to see offer details[/]")
     console.print()
 
 
@@ -714,13 +691,9 @@ def cmd_show(args_str: str):
             highs = sorted(hi for _, hi, _ in salaries)
             medians[et_type] = (statistics.median(lows), statistics.median(highs))
 
-    table = Table(
-        title=f"{matches[0]['company_name']} \u2014 {len(matches)} offers",
-        title_style="bold magenta",
-        border_style="dim",
-    )
+    table = make_table(f"{matches[0]['company_name']} \u2014 {len(matches)} offers")
     table.add_column("Title", style="bold")
-    table.add_column("Level", style="accent")
+    table.add_column("Level")
     table.add_column("City")
     table.add_column("Workplace")
     table.add_column("From/mo", justify="right")
@@ -748,20 +721,20 @@ def cmd_show(args_str: str):
                     delta_from = fmt_delta(sal_from - med_lo)
                     delta_to = fmt_delta(sal_to - med_hi)
                 table.add_row(
-                    o["title"], o.get("experience_level", ""),
-                    o.get("city", ""), o.get("workplace_type", ""),
+                    o["title"], fmt_tag(o.get("experience_level", "")),
+                    o.get("city", ""), fmt_tag(o.get("workplace_type", "")),
                     fmt_salary(sal_from), delta_from,
                     fmt_salary(sal_to), delta_to,
-                    et_type or "",
+                    fmt_tag(et_type or ""),
                     url,
                 )
         else:
             types = "/".join(dict.fromkeys(filter(None, (et.get("type") for et in ets))))
             table.add_row(
-                o["title"], o.get("experience_level", ""),
-                o.get("city", ""), o.get("workplace_type", ""),
+                o["title"], fmt_tag(o.get("experience_level", "")),
+                o.get("city", ""), fmt_tag(o.get("workplace_type", "")),
                 "[dim]-[/]", "", "[dim]-[/]", "",
-                f"[dim]{types or '-'}[/]",
+                fmt_tag(types or "-"),
                 url,
             )
 
@@ -790,11 +763,7 @@ def _print_top_for_type(salaries, pct: int, label: str):
 
     company_counts = Counter(o["company_name"] for _, _, o in above)
 
-    summary = Table(
-        title=f"Companies > P{pct} ({fmt_salary(threshold)}) \u2014 {label}",
-        title_style="bold magenta",
-        border_style="dim",
-    )
+    summary = make_table(f"Companies > P{pct} ({fmt_salary(threshold)}) \u2014 {label}")
     summary.add_column("Company", style="bold")
     summary.add_column("Offers", justify="right", style="accent")
     summary.add_column("Min", justify="right")
@@ -807,11 +776,7 @@ def _print_top_for_type(salaries, pct: int, label: str):
     console.print()
     console.print(summary)
 
-    detail = Table(
-        title=f"Offer details > P{pct} \u2014 {label}",
-        title_style="bold magenta",
-        border_style="dim",
-    )
+    detail = make_table(f"Offer details > P{pct} \u2014 {label}")
     detail.add_column("Mid", justify="right", style="salary")
     detail.add_column("From", justify="right")
     detail.add_column("To", justify="right")
@@ -825,5 +790,6 @@ def _print_top_for_type(salaries, pct: int, label: str):
             offer["company_name"], offer["title"],
         )
 
+    detail.caption = f"[dim]{len(above)} offers above P{pct} threshold[/]"
     console.print()
     console.print(detail)

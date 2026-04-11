@@ -3,11 +3,18 @@
 from collections.abc import Callable
 
 from rich.progress import BarColumn, MofNCompleteColumn, SpinnerColumn, TextColumn
+from rich.style import Style
 
 from .cancel import CancellableProgress, CancelledError, cancel_aware_sleep, check_cancel
-from .display import console
+from .display import C_CYAN, C_GREEN, C_PINK, C_PURPLE, console
 from .state import FilterArgs, state
 from .. import scrapper
+
+_PROGRESS_BAR = BarColumn(
+    complete_style=Style(color=C_PURPLE),
+    finished_style=Style(color=C_GREEN),
+    pulse_style=Style(color=C_PINK),
+)
 
 
 def ensure_data(args: FilterArgs, need_details: bool = False) -> bool:
@@ -64,9 +71,9 @@ def scrape_groups(
     result = {}
     try:
         with CancellableProgress(
-            SpinnerColumn(),
+            SpinnerColumn(style=C_CYAN),
             TextColumn("[progress.description]{task.description}"),
-            BarColumn(),
+            _PROGRESS_BAR,
             MofNCompleteColumn(),
             console=console,
         ) as progress:
@@ -89,8 +96,6 @@ def scrape_groups(
 
 def _scrape(city, category, experience, workplace, fetch_details) -> bool:
     """Scrape offers with progress. Updates session state. Returns True on success."""
-    console.print()
-    console.print("  [accent]Scraping justjoin.it...[/]")
     filters = [city]
     if category:
         filters.append(category)
@@ -98,22 +103,25 @@ def _scrape(city, category, experience, workplace, fetch_details) -> bool:
         filters.append(experience)
     if workplace:
         filters.append(workplace)
-    console.print(f"  [muted]Filters: {' / '.join(filters)}[/]")
-    console.print()
+    filter_label = " · ".join(filters)
 
+    console.print()
     try:
         params = scrapper.build_params(
             city=city, category=category, experience=experience, workplace=workplace,
         )
 
         with CancellableProgress(
-            SpinnerColumn(),
+            SpinnerColumn(style=C_CYAN),
             TextColumn("[progress.description]{task.description}"),
-            BarColumn(),
+            _PROGRESS_BAR,
             MofNCompleteColumn(),
             console=console,
         ) as progress:
-            task = progress.add_task("Fetching offers...", total=None)
+            task = progress.add_task(
+                f"[bold {C_CYAN}]justjoin.it[/] [dim]›[/] {filter_label}",
+                total=None,
+            )
 
             all_offers = []
             for batch, total, is_last in scrapper.iter_pages(params):

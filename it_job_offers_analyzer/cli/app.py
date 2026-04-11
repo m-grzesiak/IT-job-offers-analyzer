@@ -11,7 +11,6 @@ from prompt_toolkit import PromptSession
 from prompt_toolkit.auto_suggest import AutoSuggestFromHistory
 from prompt_toolkit.history import FileHistory
 from prompt_toolkit.styles import Style as PTStyle
-from rich.panel import Panel
 from rich.table import Table
 
 from . import commands
@@ -30,7 +29,7 @@ from .constants import (
     COMMAND_DESCRIPTIONS,
     HISTORY_PATH,
 )
-from .display import console
+from .display import C_BORDER, C_CYAN, C_PURPLE, console, make_panel
 
 # ---- Command registry ----
 
@@ -58,18 +57,17 @@ def show_welcome():
     console.print(BANNER, highlight=False)
 
     quick = Table(show_header=False, box=None, padding=(0, 2))
-    quick.add_column("cmd", style="bold cyan", min_width=16)
+    quick.add_column("cmd", style=f"bold {C_CYAN}", min_width=16)
     quick.add_column("desc", style="dim")
 
     for cmd in (CMD_ANALYZE, CMD_TOP, CMD_RECENT, CMD_PROGRESSION, CMD_COMPARE, CMD_BENEFITS, CMD_HELP):
-        quick.add_row(cmd, COMMAND_DESCRIPTIONS[cmd])
+        quick.add_row(f"  {cmd}", COMMAND_DESCRIPTIONS[cmd])
 
-    console.print(Panel(
+    console.print(make_panel(
         quick,
-        title="[bold]Quick start[/]",
-        subtitle="[dim]Tab for auto-complete \u00b7 ESC to cancel[/]",
-        border_style="dim",
-        padding=(1, 2),
+        "\u2728 Quick start",
+        subtitle=f"[{C_BORDER}] Tab \u00b7 auto-complete  \u2502  ESC \u00b7 cancel [/]",
+        border_style=C_BORDER,
         width=76,
     ))
     console.print()
@@ -140,7 +138,19 @@ def _check_for_update() -> str | None:
 
 
 def main():
-    prompt_style = PTStyle.from_dict({"prompt": "ansicyan bold"})
+    prompt_style = PTStyle.from_dict({
+        "prompt": f"fg:{C_PURPLE} bold",
+        # Completion menu
+        "completion-menu.completion": "bg:#282a36 fg:#f8f8f2",
+        "completion-menu.completion.current": f"bg:#44475a fg:#f8f8f2 bold",
+        "completion-menu.meta.completion": f"bg:#282a36 fg:{C_BORDER}",
+        "completion-menu.meta.completion.current": f"bg:#44475a fg:{C_CYAN}",
+        # Scrollbar
+        "scrollbar.background": "bg:#282a36",
+        "scrollbar.button": f"bg:{C_BORDER}",
+        # Auto-suggest (history hints)
+        "auto-suggest": f"fg:{C_BORDER}",
+    })
 
     show_welcome()
 
@@ -168,8 +178,8 @@ def main():
     update_thread.join(timeout=2)
     if update_result[0]:
         console.print(
-            f"  [warn]New version available: {update_result[0]}[/]"
-            f"  [muted]—  pip install --upgrade itjobs[/]"
+            f"  [#ffb86c]\u25b2 New version available: {update_result[0]}[/]"
+            f"  [muted]\u2014  pip install --upgrade itjobs[/]"
         )
         console.print()
 

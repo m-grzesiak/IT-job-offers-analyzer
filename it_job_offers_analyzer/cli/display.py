@@ -3,24 +3,63 @@
 import statistics
 from dataclasses import dataclass
 
+import rich.box as box
 from rich.console import Console
+from rich.panel import Panel
 from rich.table import Table
 from rich.theme import Theme
 
 from .. import analyzer
 
+# ---- Modern color palette (Dracula-inspired) ----
+
+C_PURPLE = "#bd93f9"
+C_CYAN = "#8be9fd"
+C_GREEN = "#50fa7b"
+C_PINK = "#ff79c6"
+C_ORANGE = "#ffb86c"
+C_RED = "#ff5555"
+C_FG = "#f8f8f2"
+C_BORDER = "#6272a4"
+C_BG = "#44475a"
+S_TITLE = f"bold {C_PURPLE}"
+
 THEME = Theme({
     "info": "dim cyan",
-    "warn": "yellow",
-    "error": "bold red",
-    "success": "bold green",
-    "accent": "bold cyan",
+    "warn": C_ORANGE,
+    "error": f"bold {C_RED}",
+    "success": f"bold {C_GREEN}",
+    "accent": f"bold {C_CYAN}",
     "muted": "dim",
-    "salary": "bold white",
-    "header": "bold magenta",
+    "salary": f"bold {C_FG}",
+    "header": S_TITLE,
+    "highlight": C_PINK,
+    "label": C_CYAN,
 })
 
 console = Console(theme=THEME)
+
+
+# ---- Component factories ----
+
+
+def make_table(title: str = "", **kwargs) -> Table:
+    """Create a table with standard modern styling (rounded, purple title, gray border, zebra stripes)."""
+    defaults = {"box": box.ROUNDED, "border_style": C_BORDER}
+    if title:
+        defaults["title"] = title
+        defaults["title_style"] = S_TITLE
+    defaults.update(kwargs)
+    return Table(**defaults)
+
+
+def make_panel(content, title: str = "", **kwargs) -> Panel:
+    """Create a panel with standard modern styling (rounded, purple border)."""
+    defaults: dict = {"box": box.ROUNDED, "border_style": C_PURPLE, "padding": (1, 2)}
+    if title:
+        defaults["title"] = f"[{S_TITLE}] {title} [/]"
+    defaults.update(kwargs)
+    return Panel(content, **defaults)
 
 
 # ---- Salary statistics view-model ----
@@ -68,10 +107,70 @@ def fmt_salary(val: float) -> str:
 def fmt_delta(delta: float) -> str:
     """Format a salary delta with color: green for positive, red for negative."""
     if delta > 0:
-        return f"[green]+{delta:,.0f} PLN[/]".replace(",", " ")
+        return f"[{C_GREEN}]+{delta:,.0f} PLN[/]".replace(",", " ")
     if delta < 0:
-        return f"[red]{delta:,.0f} PLN[/]".replace(",", " ")
+        return f"[{C_RED}]{delta:,.0f} PLN[/]".replace(",", " ")
     return "[dim]0 PLN[/]"
+
+
+# ---- Tags / pills ----
+
+_TAG_COLORS = {
+    "b2b": C_CYAN,
+    "permanent": C_GREEN,
+    "mandate": C_ORANGE,
+    "internship": C_PINK,
+    "remote": C_PURPLE,
+    "hybrid": C_ORANGE,
+    "office": C_BORDER,
+    "junior": C_GREEN,
+    "mid": C_CYAN,
+    "senior": C_ORANGE,
+    "c_level": C_PINK,
+}
+
+
+def fmt_tag(text: str) -> str:
+    """Format a value as a colored pill/badge."""
+    if not text or text == "-":
+        return f"[dim]{text or '-'}[/]"
+    color = _TAG_COLORS.get(text.lower(), C_BORDER)
+    return f"[{color} on {C_BG}]{text}[/]"
+
+
+# ---- Gradient bar visualization ----
+
+_BAR_GRADIENT = [C_GREEN, C_CYAN, C_PURPLE, C_PINK]
+
+
+def gradient_bar(ratio: float, width: int = 20, char: str = "\u2501", empty_char: str = "\u2500") -> str:
+    """Create a gradient-colored bar (green -> cyan -> purple -> pink)."""
+    filled = int(ratio * width)
+    empty = width - filled
+    if filled == 0:
+        return f"[{C_BG}]{empty_char * width}[/]"
+
+    # Group consecutive same-color characters for efficiency
+    segments: list[str] = []
+    prev_color = None
+    count = 0
+    for i in range(filled):
+        color_idx = min(int(i / width * len(_BAR_GRADIENT)), len(_BAR_GRADIENT) - 1)
+        color = _BAR_GRADIENT[color_idx]
+        if color == prev_color:
+            count += 1
+        else:
+            if prev_color is not None:
+                segments.append(f"[{prev_color}]{char * count}[/]")
+            prev_color = color
+            count = 1
+    if prev_color is not None:
+        segments.append(f"[{prev_color}]{char * count}[/]")
+
+    if empty > 0:
+        segments.append(f"[{C_BG}]{empty_char * empty}[/]")
+
+    return "".join(segments)
 
 
 # ---- Table builders ----
@@ -83,24 +182,20 @@ def make_summary_table(stats: SalaryStats, total_offers: int) -> Table:
     table.add_column("key", style="dim")
     table.add_column("value", style="bold white")
 
-    table.add_row("Total offers", str(total_offers))
-    table.add_row("With salary", str(stats.count))
-    table.add_row("Without salary", str(total_offers - stats.count))
+    table.add_row(f"[{C_CYAN}]\u25cf[/] Total offers", str(total_offers))
+    table.add_row(f"[{C_GREEN}]\u25cf[/] With salary", str(stats.count))
+    table.add_row(f"[{C_BORDER}]\u25cf[/] Without salary", str(total_offers - stats.count))
     table.add_row("", "")
-    table.add_row("Median \u2014 lower", fmt_salary(stats.median_low))
-    table.add_row("Median \u2014 upper", fmt_salary(stats.median_high))
-    table.add_row("Median \u2014 mid", fmt_salary(stats.median_mid))
+    table.add_row("  Median \u2014 lower", fmt_salary(stats.median_low))
+    table.add_row("  Median \u2014 upper", fmt_salary(stats.median_high))
+    table.add_row("  [bold]Median \u2014 mid[/]", f"[bold {C_PINK}]{fmt_salary(stats.median_mid)}[/]")
 
     return table
 
 
 def make_percentile_table(midpoints: list[float], title: str = "Percentiles (mid-range)") -> Table:
     """Build a Rich table with percentile data and visual bars."""
-    table = Table(
-        title=title,
-        title_style="bold magenta",
-        border_style="dim",
-    )
+    table = make_table(title, row_styles=None)
     table.add_column("Percentile", justify="right", style="accent")
     table.add_column("Amount", justify="right", style="salary")
     table.add_column("Offers \u2264", justify="right", style="muted")
@@ -111,9 +206,9 @@ def make_percentile_table(midpoints: list[float], title: str = "Percentiles (mid
         val = analyzer.percentile(midpoints, p)
         count = sum(1 for m in midpoints if m <= val)
         bar_ratio = val / max_val if max_val else 0
-        bar_len = int(bar_ratio * 20)
-        bar = "\u2588" * bar_len + "\u2591" * (20 - bar_len)
-        table.add_row(f"P{p}", fmt_salary(val), str(count), f"[cyan]{bar}[/]")
+        # Highlight the median (P50) row
+        style = f"bold on {C_BG}" if p == 50 else None
+        table.add_row(f"P{p}", fmt_salary(val), str(count), gradient_bar(bar_ratio, 22), style=style)
 
     return table
 
@@ -127,11 +222,7 @@ def make_distribution_table(midpoints: list[float], title: str = "Salary Distrib
         brackets.append((pvals[i - 1], pvals[i], f"P{analyzer.PERCENTILES[i - 1]}\u2013P{analyzer.PERCENTILES[i]}"))
     brackets.append((pvals[-1], float("inf"), f"> P{analyzer.PERCENTILES[-1]}"))
 
-    table = Table(
-        title=title,
-        title_style="bold magenta",
-        border_style="dim",
-    )
+    table = make_table(title, row_styles=None)
     table.add_column("Bracket", justify="right", style="accent")
     table.add_column("Range", justify="right")
     table.add_column("Offers", justify="right", style="salary")
@@ -142,14 +233,14 @@ def make_distribution_table(midpoints: list[float], title: str = "Salary Distrib
     for lo, hi, label in brackets:
         count = sum(1 for m in midpoints if lo < m <= hi) if lo > 0 else sum(1 for m in midpoints if m <= hi)
         pct = count / total * 100 if total else 0
-        bar_len = int(pct / 100 * 25)
-        bar = "\u2588" * bar_len
 
         hi_str = fmt_salary(hi) if hi != float("inf") else "\u221e"
         range_str = f"{fmt_salary(lo)} \u2013 {hi_str}"
 
-        color = "green" if pct > 20 else "cyan" if pct > 10 else "dim"
-        table.add_row(label, range_str, str(count), f"{pct:.1f}%", f"[{color}]{bar}[/]")
+        color = C_GREEN if pct > 20 else C_CYAN if pct > 10 else C_BORDER
+        bar_len = int(pct / 100 * 25)
+        bar = f"[{color}]{'\u2588' * bar_len}[/]" if bar_len else ""
+        table.add_row(label, range_str, str(count), f"{pct:.1f}%", bar)
 
     return table
 
@@ -164,6 +255,6 @@ def print_bar_chart(items: list[tuple[str, float]], bar_width: int = 35, fmt_fn=
     max_label = max(len(label) for label, _ in items)
     console.print()
     for label, value in items:
-        bar_len = int(value / max_val * bar_width) if max_val else 0
-        bar = "\u2588" * bar_len
-        console.print(f"  {label:>{max_label}}  [cyan]{bar}[/] {fmt_fn(value)}")
+        ratio = value / max_val if max_val else 0
+        bar = gradient_bar(ratio, bar_width, char="\u2588", empty_char=" ")
+        console.print(f"  {label:>{max_label}}  {bar} [bold]{fmt_fn(value)}[/]")

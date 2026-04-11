@@ -48,12 +48,12 @@ class TestFmtDelta:
     def test_positive_delta(self):
         result = fmt_delta(5000)
         assert "+5 000 PLN" in result
-        assert "green" in result
+        assert "#50fa7b" in result
 
     def test_negative_delta(self):
         result = fmt_delta(-3000)
         assert "-3 000 PLN" in result
-        assert "red" in result
+        assert "#ff5555" in result
 
     def test_zero_delta(self):
         result = fmt_delta(0)
