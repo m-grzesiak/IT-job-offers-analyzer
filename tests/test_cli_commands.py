@@ -1,5 +1,6 @@
 """Tests for it_job_offers_analyzer.cli.commands — all command handlers."""
 
+from datetime import datetime, timedelta, timezone
 from unittest.mock import patch
 
 from it_job_offers_analyzer.cli import commands
@@ -264,3 +265,84 @@ class TestCmdHelp:
         assert "/analyze" in output
         assert "/top" in output
         assert "/help" in output
+        assert "/recent" in output
+
+
+# ---------------------------------------------------------------------------
+# cmd_recent
+# ---------------------------------------------------------------------------
+
+
+def _recent_ts(hours_ago: int) -> str:
+    """Return an ISO timestamp N hours ago from now."""
+    dt = datetime.now(timezone.utc) - timedelta(hours=hours_ago)
+    return dt.strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
+class TestCmdRecent:
+    @patch("it_job_offers_analyzer.cli.commands.ensure_data", return_value=True)
+    def test_shows_recent_offers(self, mock_ed, clean_state, capture_console, make_offer):
+        clean_state.offers = [
+            make_offer(company_name="FreshCo", published_at=_recent_ts(2)),
+            make_offer(company_name="OldCo", published_at="2020-01-01T12:00:00Z"),
+        ]
+        commands.cmd_recent("")
+        output = capture_console.getvalue()
+        assert "FreshCo" in output
+        assert "OldCo" not in output
+
+    @patch("it_job_offers_analyzer.cli.commands.ensure_data", return_value=True)
+    def test_custom_days(self, mock_ed, clean_state, capture_console, make_offer):
+        clean_state.offers = [
+            make_offer(company_name="Yesterday", published_at=_recent_ts(20)),
+            make_offer(company_name="LastWeek", published_at=_recent_ts(150)),
+        ]
+        # 1 day — only "Yesterday" (20h ago)
+        commands.cmd_recent("1")
+        output = capture_console.getvalue()
+        assert "Yesterday" in output
+        assert "LastWeek" not in output
+
+    @patch("it_job_offers_analyzer.cli.commands.ensure_data", return_value=True)
+    def test_custom_days_wider(self, mock_ed, clean_state, capture_console, make_offer):
+        clean_state.offers = [
+            make_offer(company_name="Yesterday", published_at=_recent_ts(20)),
+            make_offer(company_name="LastWeek", published_at=_recent_ts(150)),
+        ]
+        # 7 days — both should show
+        commands.cmd_recent("7")
+        output = capture_console.getvalue()
+        assert "Yesterday" in output
+        assert "LastWeek" in output
+
+    @patch("it_job_offers_analyzer.cli.commands.ensure_data", return_value=True)
+    def test_no_recent_offers(self, mock_ed, clean_state, capture_console, make_offer):
+        clean_state.offers = [
+            make_offer(published_at="2020-01-01T12:00:00Z"),
+        ]
+        commands.cmd_recent("")
+        output = capture_console.getvalue()
+        assert "No offers published" in output
+
+    @patch("it_job_offers_analyzer.cli.commands.ensure_data", return_value=True)
+    def test_shows_salary_info(self, mock_ed, clean_state, capture_console, make_offer):
+        clean_state.offers = [make_offer(published_at=_recent_ts(1))]
+        commands.cmd_recent("")
+        output = capture_console.getvalue()
+        assert "PLN" in output
+
+    @patch("it_job_offers_analyzer.cli.commands.ensure_data", return_value=True)
+    def test_days_with_filters(self, mock_ed, clean_state, capture_console, make_offer):
+        """Days argument should be extracted; remaining args passed to parse_args."""
+        clean_state.offers = [
+            make_offer(company_name="Recent", published_at=_recent_ts(5)),
+        ]
+        commands.cmd_recent("7 b2b")
+        output = capture_console.getvalue()
+        assert "Recent" in output
+
+    @patch("it_job_offers_analyzer.cli.commands.ensure_data", return_value=False)
+    def test_ensure_data_fails(self, mock_ed, clean_state, capture_console):
+        commands.cmd_recent("Kraków python")
+        output = capture_console.getvalue()
+        assert "Recent" not in output

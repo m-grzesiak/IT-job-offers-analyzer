@@ -21,6 +21,7 @@ from .constants import (
     CMD_HELP,
     CMD_PROGRESSION,
     CMD_QUIT,
+    CMD_RECENT,
     CMD_TOP,
     COMMAND_DESCRIPTIONS,
     HISTORY_PATH,
@@ -39,6 +40,7 @@ COMMAND_REGISTRY: dict[str, tuple] = {
     "/outliers":    (commands.cmd_outliers, True),
     "/benefits":    (commands.cmd_benefits, True),
     "/show":        (commands.cmd_show, True),
+    "/recent":      (commands.cmd_recent, True),
     "/progression": (commands.cmd_progression, True),
     "/compare":     (commands.cmd_compare, True),
 }
@@ -55,7 +57,7 @@ def show_welcome():
     quick.add_column("cmd", style="bold cyan", min_width=16)
     quick.add_column("desc", style="dim")
 
-    for cmd in (CMD_ANALYZE, CMD_TOP, CMD_PROGRESSION, CMD_COMPARE, CMD_BENEFITS, CMD_HELP):
+    for cmd in (CMD_ANALYZE, CMD_TOP, CMD_RECENT, CMD_PROGRESSION, CMD_COMPARE, CMD_BENEFITS, CMD_HELP):
         quick.add_row(cmd, COMMAND_DESCRIPTIONS[cmd])
 
     console.print(Panel(

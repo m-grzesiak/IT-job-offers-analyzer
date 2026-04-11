@@ -154,14 +154,16 @@ def make_distribution_table(midpoints: list[float], title: str = "Salary Distrib
     return table
 
 
-def print_bar_chart(items: list[tuple[str, float]], bar_width: int = 35):
+def print_bar_chart(items: list[tuple[str, float]], bar_width: int = 35, fmt_fn=None):
     """Print a horizontal bar chart of labeled values."""
     if not items:
         return
+    if fmt_fn is None:
+        fmt_fn = fmt_salary
     max_val = max(v for _, v in items)
     max_label = max(len(label) for label, _ in items)
     console.print()
     for label, value in items:
         bar_len = int(value / max_val * bar_width) if max_val else 0
         bar = "\u2588" * bar_len
-        console.print(f"  {label:>{max_label}}  [cyan]{bar}[/] {fmt_salary(value)}")
+        console.print(f"  {label:>{max_label}}  [cyan]{bar}[/] {fmt_fn(value)}")

@@ -2,6 +2,7 @@
 
 import statistics
 from collections import Counter
+from datetime import datetime, timedelta, timezone
 
 from rich.panel import Panel
 from rich.table import Table
@@ -60,6 +61,7 @@ def cmd_help():
         "\\[>P75]",
         "percentile threshold: " + ", ".join(f">P{p}" for p in analyzer.PERCENTILES),
     )
+    params_table.add_row("\\[days]", "number of days for /recent (default: 3)")
     params_table.add_row("<company>", "company name [bold](required)[/]")
 
     console.print(Panel(
@@ -85,6 +87,22 @@ def cmd_help():
         compare_table,
         title="[bold]/compare \u2014 examples[/]",
         subtitle="[dim]pass 2+ values from one group \u00b7 rest are filters[/]",
+        border_style="dim",
+        expand=False,
+        padding=(1, 2),
+    ))
+
+    recent_table = Table(show_header=False, box=None, padding=(0, 2))
+    recent_table.add_column("example", style="bold cyan", no_wrap=True)
+    recent_table.add_column("desc", style="dim")
+    recent_table.add_row("/recent Krak\u00f3w python senior", "last 3 days (default)")
+    recent_table.add_row("/recent 7 Krak\u00f3w python", "last 7 days")
+    recent_table.add_row("/recent 1 b2b", "last 24h, B2B only")
+
+    console.print(Panel(
+        recent_table,
+        title="[bold]/recent \u2014 examples[/]",
+        subtitle="[dim]\\[days] defaults to 3 \u00b7 shows per-day chart + offer list[/]",
         border_style="dim",
         expand=False,
         padding=(1, 2),
@@ -510,6 +528,134 @@ def cmd_compare(args_str: str):
 
 
 # ---- Data browsing commands ----
+
+
+def cmd_recent(args_str: str):
+    """Show recently published offers."""
+    # Extract days argument (bare number) before standard parsing
+    parts = args_str.split() if args_str else []
+    days = 3
+    remaining = []
+    for p in parts:
+        if p.isdigit():
+            days = int(p)
+        else:
+            remaining.append(p)
+
+    if days < 1:
+        days = 1
+
+    args = parse_args(" ".join(remaining))
+    if args is None or not ensure_data(args):
+        return
+
+    now = datetime.now(timezone.utc)
+    cutoff = now - timedelta(days=days)
+
+    recent = []
+    for o in state.offers:
+        pub = o.get("published_at")
+        if not pub:
+            continue
+        try:
+            dt = datetime.fromisoformat(pub.replace("Z", "+00:00"))
+            if dt >= cutoff:
+                recent.append((dt, o))
+        except (ValueError, TypeError):
+            continue
+
+    if not recent:
+        console.print(f"  [warn]No offers published in the last {days} day(s)[/]")
+        return
+
+    recent.sort(key=lambda x: x[0], reverse=True)
+    total = len(state.offers)
+
+    # Per-day distribution
+    day_counts: dict[str, int] = {}
+    for dt, _ in recent:
+        label = dt.strftime("%b %d")
+        day_counts[label] = day_counts.get(label, 0) + 1
+    chart_items = list(day_counts.items())
+
+    summary = Table(show_header=False, box=None, padding=(0, 2))
+    summary.add_column("k", style="dim")
+    summary.add_column("v", style="bold")
+    summary.add_row("Period", f"last {days} day(s)")
+    summary.add_row("Recent offers", f"{len(recent)} of {total}")
+
+    console.print()
+    console.print(Panel(
+        summary,
+        title="[bold]Recent Offers[/]",
+        border_style="magenta",
+        padding=(1, 2),
+    ))
+
+    if len(chart_items) > 1:
+        print_bar_chart(chart_items, fmt_fn=lambda v: f"{int(v)} offers")
+
+    console.print()
+
+    # Offer table
+    table = Table(
+        title=f"Offers from last {days} day(s)",
+        title_style="bold magenta",
+        border_style="dim",
+    )
+    table.add_column("Age", style="accent", no_wrap=True)
+    table.add_column("Company", style="bold", max_width=25)
+    table.add_column("Title", max_width=35)
+    table.add_column("Level", style="muted")
+    table.add_column("From/mo", justify="right")
+    table.add_column("To/mo", justify="right")
+    table.add_column("Type", style="muted")
+    table.add_column("Link", style="dim", no_wrap=True)
+
+    for dt, o in recent:
+        age = now - dt
+        total_secs = age.total_seconds()
+        if total_secs < 3600:
+            time_str = f"{int(total_secs / 60)}m ago"
+        elif total_secs < 86400:
+            time_str = f"{int(total_secs / 3600)}h ago"
+        else:
+            time_str = f"{age.days}d ago"
+
+        ets = o.get("employment_types", [])
+        sal_from_str = "[dim]-[/]"
+        sal_to_str = "[dim]-[/]"
+        type_str = ""
+
+        pln_entries = [
+            et for et in ets
+            if (et.get("currency") or "").upper() == "PLN"
+            and et.get("salary_from") is not None
+        ]
+        if pln_entries:
+            et = pln_entries[0]
+            sal_from_str = fmt_salary(analyzer.normalize_monthly(et["salary_from"]))
+            sal_to_str = fmt_salary(analyzer.normalize_monthly(et["salary_to"]))
+            type_str = et.get("type", "")
+        else:
+            types = "/".join(dict.fromkeys(
+                filter(None, (et.get("type") for et in ets))
+            ))
+            type_str = types or "-"
+
+        table.add_row(
+            time_str,
+            o.get("company_name", ""),
+            o.get("title", ""),
+            o.get("experience_level", ""),
+            sal_from_str,
+            sal_to_str,
+            type_str,
+            o.get("url", ""),
+        )
+
+    console.print(table)
+    console.print()
 
 
 def cmd_companies():

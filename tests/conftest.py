@@ -75,6 +75,7 @@ def make_offer():
             employment_types=None,
             body=None,
             url="https://justjoin.it/job-offer/test-offer-1",
+            published_at="2025-01-01T12:00:00Z",
     ):
         if employment_types is None:
             employment_types = [
@@ -97,7 +98,7 @@ def make_offer():
             "working_time": "full_time",
             "employment_types": employment_types,
             "languages": [],
-            "published_at": "2025-01-01T12:00:00Z",
+            "published_at": published_at,
             "expired_at": "2025-02-01T12:00:00Z",
             "url": url,
         }

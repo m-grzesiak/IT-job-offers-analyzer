@@ -24,6 +24,7 @@ CMD_SHOW = "/show"
 CMD_COMPANIES = "/companies"
 CMD_PROGRESSION = "/progression"
 CMD_COMPARE = "/compare"
+CMD_RECENT = "/recent"
 CMD_CLEAR = "/clear"
 CMD_STATUS = "/status"
 CMD_HELP = "/help"
@@ -60,6 +61,10 @@ COMMAND_STAGES = {
         (scrapper.EMPLOYMENT_TYPES, "employment type"),
         (scrapper.WORKPLACE_TYPES, "workplace"),
     ],
+    CMD_RECENT: BASE_STAGES + [
+        (scrapper.EMPLOYMENT_TYPES, "employment type"),
+        (scrapper.WORKPLACE_TYPES, "workplace"),
+    ],
     CMD_HELP: [],
     CMD_OUTLIERS: BASE_STAGES + [
         (scrapper.EMPLOYMENT_TYPES, "employment type"),
@@ -80,6 +85,7 @@ COMMAND_DESCRIPTIONS = {
     CMD_TOP: "top companies by median salary",
     CMD_OUTLIERS: "offers outside the normal range",
     CMD_BENEFITS: "B2B benefits in offer descriptions",
+    CMD_RECENT: "recently published offers",
     CMD_PROGRESSION: "salary progression junior \u2192 senior",
     CMD_COMPARE: "compare salaries across cities, categories, or types",
     CMD_SHOW: "offer details for a company",
@@ -95,6 +101,7 @@ COMMAND_SYNTAX = {
     CMD_TOP: f"{CMD_TOP} \\[city] \\[cat] \\[exp] \\[workplace] \\[type] \\[>P75]",
     CMD_OUTLIERS: f"{CMD_OUTLIERS} \\[city] \\[cat] \\[exp] \\[workplace] \\[type]",
     CMD_BENEFITS: f"{CMD_BENEFITS} \\[city] \\[cat] \\[exp] \\[workplace]",
+    CMD_RECENT: f"{CMD_RECENT} \\[days] \\[city] \\[cat] \\[exp] \\[workplace] \\[type]",
     CMD_PROGRESSION: f"{CMD_PROGRESSION} \\[city] \\[cat] \\[type] \\[workplace]",
     CMD_COMPARE: f"{CMD_COMPARE} <values...> \\[filters...]",
     CMD_SHOW: f"{CMD_SHOW} <company>",
