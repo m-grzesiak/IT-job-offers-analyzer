@@ -1,0 +1,683 @@
+"""Command implementations for the interactive CLI."""
+
+import statistics
+from collections import Counter
+
+from rich.panel import Panel
+from rich.table import Table
+
+from .constants import (
+    CITIES,
+    COMMAND_DESCRIPTIONS,
+    COMMAND_SYNTAX,
+)
+from .display import (
+    SalaryStats,
+    console,
+    fmt_delta,
+    fmt_salary,
+    make_distribution_table,
+    make_percentile_table,
+    make_summary_table,
+    print_bar_chart,
+)
+from .parsing import parse_args, parse_compare_args
+from .scraping import ensure_data, require_data, scrape_groups
+from .state import state
+from .. import analyzer
+from .. import scrapper
+
+
+# ---- Informational commands ----
+
+
+def cmd_help():
+    """Show help with parameter details."""
+    help_table = Table(show_header=False, box=None, padding=(0, 2))
+    help_table.add_column("cmd", style="bold cyan", no_wrap=True)
+    help_table.add_column("desc")
+    for cmd in sorted(COMMAND_SYNTAX):
+        help_table.add_row(COMMAND_SYNTAX[cmd], COMMAND_DESCRIPTIONS[cmd])
+
+    console.print()
+    console.print(Panel(
+        help_table,
+        title="[bold]Commands[/]",
+        border_style="dim",
+        expand=False,
+        padding=(1, 2),
+    ))
+
+    params_table = Table(show_header=True, box=None, padding=(0, 2))
+    params_table.add_column("Parameter", style="bold yellow", no_wrap=True)
+    params_table.add_column("Values", style="dim")
+    params_table.add_row("\\[city]", ", ".join(CITIES[:8]) + ", \u2026")
+    params_table.add_row("\\[cat]", ", ".join(scrapper.CATEGORIES[:10]) + ", \u2026")
+    params_table.add_row("\\[exp]", ", ".join(scrapper.EXPERIENCE_LEVELS))
+    params_table.add_row("\\[workplace]", ", ".join(scrapper.WORKPLACE_TYPES))
+    params_table.add_row("\\[type]", ", ".join(scrapper.EMPLOYMENT_TYPES))
+    params_table.add_row(
+        "\\[>P75]",
+        "percentile threshold: " + ", ".join(f">P{p}" for p in analyzer.PERCENTILES),
+    )
+    params_table.add_row("<company>", "company name [bold](required)[/]")
+
+    console.print(Panel(
+        params_table,
+        title="[bold]Parameters[/]",
+        subtitle="[dim]\\[brackets] = optional   <angle> = required[/]",
+        border_style="dim",
+        expand=False,
+        padding=(1, 2),
+    ))
+
+    compare_table = Table(show_header=False, box=None, padding=(0, 2))
+    compare_table.add_column("example", style="bold cyan", no_wrap=True)
+    compare_table.add_column("desc", style="dim")
+    compare_table.add_row("/compare Krak\u00f3w Warszawa python senior b2b", "compare 2 cities")
+    compare_table.add_row("/compare Krak\u00f3w Warszawa Wroc\u0142aw python senior", "compare 3 cities")
+    compare_table.add_row("/compare Krak\u00f3w python java senior b2b", "compare categories")
+    compare_table.add_row("/compare Krak\u00f3w python senior b2b permanent", "compare employment types")
+    compare_table.add_row("/compare Krak\u00f3w python junior senior b2b", "compare experience levels")
+    compare_table.add_row("/compare Krak\u00f3w python remote office b2b", "compare workplace types")
+
+    console.print(Panel(
+        compare_table,
+        title="[bold]/compare \u2014 examples[/]",
+        subtitle="[dim]pass 2+ values from one group \u00b7 rest are filters[/]",
+        border_style="dim",
+        expand=False,
+        padding=(1, 2),
+    ))
+    console.print()
+
+
+def cmd_status():
+    """Show current session state."""
+    console.print()
+    if not state.offers:
+        console.print("  [muted]No offers loaded. Run a command like /analyze Krak\u00f3w python senior[/]")
+    else:
+        has_salary = sum(
+            1 for o in state.offers
+            if any(et.get("salary_from") for et in o.get("employment_types", []))
+        )
+        has_body = sum(1 for o in state.offers if o.get("body"))
+
+        info = Table(show_header=False, box=None, padding=(0, 2))
+        info.add_column("k", style="dim")
+        info.add_column("v", style="bold")
+        info.add_row("Offers", str(len(state.offers)))
+        info.add_row("With salary", str(has_salary))
+        info.add_row("With description", str(has_body))
+        if state.city:
+            info.add_row("City", state.city)
+        if state.category:
+            info.add_row("Category", state.category)
+        if state.experience:
+            info.add_row("Experience", state.experience)
+        if state.workplace:
+            info.add_row("Workplace", state.workplace)
+
+        console.print(Panel(info, title="[bold]Status[/]", border_style="dim", padding=(1, 2)))
+    console.print()
+
+
+def cmd_clear():
+    """Clear screen and reset session state."""
+    from .app import show_welcome  # local import to avoid circular dependency
+
+    state.reset()
+    console.clear()
+    show_welcome()
+
+
+# ---- Analysis commands ----
+
+
+def cmd_analyze(args_str: str):
+    """Salary analysis with percentile and distribution tables."""
+    args = parse_args(args_str)
+    if args is None or not ensure_data(args):
+        return
+
+    total_offers = len(state.offers)
+    types_to_show = [args.emp_type] if args.emp_type else scrapper.EMPLOYMENT_TYPES
+
+    any_data = False
+    for et in types_to_show:
+        salaries = analyzer.extract_salaries(state.offers, et)
+        stats = SalaryStats.compute(salaries)
+        if not stats:
+            continue
+        any_data = True
+        label = et.upper() if et else "all types"
+        console.print()
+        console.print(Panel(
+            make_summary_table(stats, total_offers),
+            title=f"[bold]Summary \u2014 {label}[/]",
+            border_style="magenta",
+            padding=(1, 2),
+        ))
+        console.print()
+        console.print(make_percentile_table(stats.midpoints, f"Percentiles \u2014 {label}"))
+        console.print()
+        console.print(make_distribution_table(stats.midpoints, f"Salary Distribution \u2014 {label}"))
+
+    if not any_data:
+        console.print("  [warn]No offers with salary data[/]")
+        return
+
+    console.print()
+
+
+def cmd_top(args_str: str):
+    """Show companies above a percentile threshold."""
+    args = parse_args(args_str)
+    if args is None or not ensure_data(args):
+        return
+
+    pct = args.top_percentile or 90
+    types_to_show = [args.emp_type] if args.emp_type else scrapper.EMPLOYMENT_TYPES
+
+    any_data = False
+    for et in types_to_show:
+        salaries = analyzer.extract_salaries(state.offers, et)
+        if not salaries:
+            continue
+        any_data = True
+        label = et.upper() if et else "all"
+        _print_top_for_type(salaries, pct, label)
+
+    if not any_data:
+        console.print("  [warn]No offers with salary data[/]")
+        return
+
+    console.print()
+    console.print("  [muted]Use /show <company> to see all offers for a given company[/]")
+    console.print()
+
+
+def cmd_outliers(args_str: str):
+    """Show detected salary outliers."""
+    args = parse_args(args_str)
+    if args is None or not ensure_data(args):
+        return
+
+    salaries = analyzer.extract_salaries(state.offers, args.emp_type)
+    _, outliers = analyzer.detect_outliers(salaries)
+
+    if not outliers:
+        console.print("  [success]No outliers[/]")
+        return
+
+    table = Table(
+        title=f"Detected outliers ({len(outliers)})",
+        title_style="bold yellow",
+        border_style="yellow",
+    )
+    table.add_column("Mid", justify="right", style="salary")
+    table.add_column("From", justify="right")
+    table.add_column("To", justify="right")
+    table.add_column("Company", style="bold")
+    table.add_column("Title", style="dim")
+
+    for lo, hi, offer in sorted(outliers, key=lambda x: analyzer.midpoint(x[0], x[1]), reverse=True):
+        mid = analyzer.midpoint(lo, hi)
+        table.add_row(
+            fmt_salary(mid), fmt_salary(lo), fmt_salary(hi),
+            offer["company_name"], offer["title"],
+        )
+
+    console.print()
+    console.print(table)
+    console.print()
+
+
+def cmd_benefits(args_str: str):
+    """Analyze B2B benefits (vacation, sick leave, extras)."""
+    args = parse_args(args_str)
+    if args is None or not ensure_data(args, need_details=True):
+        return
+
+    b2b_with_body = [
+        o for o in state.offers
+        if o.get("body") and any(et.get("type") == "b2b" for et in o.get("employment_types", []))
+    ]
+
+    if not b2b_with_body:
+        console.print("  [warn]No B2B offers with description[/]")
+        return
+
+    with_vac, with_sick, with_extra, with_any = [], [], [], []
+
+    for offer in b2b_with_body:
+        text = analyzer.strip_html(offer["body"])
+        vac = analyzer.search_keywords(text, analyzer.KEYWORDS_VACATION)
+        sick = analyzer.search_keywords(text, analyzer.KEYWORDS_SICK)
+        extra = analyzer.search_keywords(text, analyzer.KEYWORDS_EXTRA_BENEFITS)
+        if vac:
+            with_vac.append((offer, vac))
+        if sick:
+            with_sick.append((offer, sick))
+        if extra:
+            with_extra.append((offer, extra))
+        if vac or sick or extra:
+            with_any.append((offer, vac, sick, extra))
+
+    total = len(b2b_with_body)
+    pct = lambda n: f"{n}/{total} ({n / total * 100:.1f}%)"
+
+    summary = Table(show_header=False, box=None, padding=(0, 2))
+    summary.add_column("k", style="dim")
+    summary.add_column("v", style="bold")
+    summary.add_row("B2B offers with desc", str(total))
+    summary.add_row("Mentions vacation", pct(len(with_vac)))
+    summary.add_row("Mentions sick leave", pct(len(with_sick)))
+    summary.add_row("Cafeteria/extras", pct(len(with_extra)))
+
+    console.print()
+    console.print(Panel(summary, title="[bold]B2B Benefits[/]", border_style="magenta", padding=(1, 2)))
+
+    if with_any:
+        table = Table(
+            title="Offers with benefits",
+            title_style="bold magenta",
+            border_style="dim",
+        )
+        table.add_column("Company", style="bold", max_width=28)
+        table.add_column("Vacation", style="green")
+        table.add_column("Sick leave", style="yellow")
+        table.add_column("Extras", style="cyan")
+        table.add_column("Title", style="dim", max_width=40)
+
+        for offer, vac, sick, extra in with_any:
+            table.add_row(
+                offer["company_name"],
+                ", ".join(vac) if vac else "-",
+                ", ".join(sick) if sick else "-",
+                ", ".join(extra) if extra else "-",
+                offer["title"],
+            )
+
+        console.print()
+        console.print(table)
+
+    console.print()
+
+
+# ---- Multi-group commands ----
+
+
+def cmd_progression(args_str: str):
+    """Show salary progression across experience levels."""
+    args = parse_args(args_str)
+    if args is None:
+        return
+
+    city = args.city or state.city
+    category = args.category or state.category
+    workplace = args.workplace or state.workplace
+    emp_type = args.emp_type
+
+    if not city:
+        console.print("  [error]Specify city, e.g.: /progression Krak\u00f3w python b2b[/]")
+        return
+    if not category:
+        console.print("  [error]Specify category, e.g.: /progression Krak\u00f3w python b2b[/]")
+        return
+
+    if args.experience:
+        console.print("  [warn]Experience level ignored \u2014 /progression tests all levels[/]")
+
+    filters = [city, category]
+    if emp_type:
+        filters.append(emp_type)
+    if workplace:
+        filters.append(workplace)
+    console.print()
+    console.print("  [accent]Scraping salary progression...[/]")
+    console.print(f"  [muted]Filters: {' / '.join(filters)}[/]")
+    console.print()
+
+    group_data = scrape_groups(
+        scrapper.EXPERIENCE_LEVELS,
+        build_params_fn=lambda level: (city, category, level, workplace),
+        label_fn=lambda v: v.replace("_", " ").title(),
+    )
+    if group_data is None:
+        return
+
+    rows = []
+    prev_mid = None
+    for level in scrapper.EXPERIENCE_LEVELS:
+        offers = group_data[level]
+        salaries = analyzer.extract_salaries(offers, emp_type)
+        stats = SalaryStats.compute(salaries)
+        label = level.replace("_", " ").title()
+        if not stats:
+            rows.append((label, len(offers), 0, None, None, None, None))
+            continue
+        delta = stats.median_mid - prev_mid if prev_mid is not None else None
+        rows.append((label, len(offers), stats.count, stats.median_low, stats.median_high, stats.median_mid, delta))
+        prev_mid = stats.median_mid
+
+    if all(row[3] is None for row in rows):
+        console.print("  [warn]No salary data for any experience level[/]")
+        return
+
+    type_label = f" / {emp_type.upper()}" if emp_type else ""
+    table = Table(
+        title=f"Salary Progression \u2014 {city} / {category}{type_label}",
+        title_style="bold magenta",
+        border_style="dim",
+    )
+    table.add_column("Level", style="bold")
+    table.add_column("Offers", justify="right", style="muted")
+    table.add_column("With salary", justify="right", style="muted")
+    table.add_column("Median From", justify="right")
+    table.add_column("Median Mid", justify="right", style="salary")
+    table.add_column("Median To", justify="right")
+    table.add_column("Delta", justify="right")
+
+    for label, total, with_sal, med_lo, med_hi, med_mid, delta in rows:
+        if med_mid is None:
+            table.add_row(label, str(total), "0", "\u2014", "\u2014", "\u2014", "")
+        else:
+            delta_str = fmt_delta(delta) if delta is not None else "[dim]\u2014[/]"
+            table.add_row(
+                label, str(total), str(with_sal),
+                fmt_salary(med_lo), fmt_salary(med_mid), fmt_salary(med_hi),
+                delta_str,
+            )
+
+    console.print()
+    console.print(table)
+
+    chart_items = [(label, med_mid) for label, _, _, _, _, med_mid, _ in rows if med_mid is not None]
+    print_bar_chart(chart_items)
+    console.print()
+
+
+def cmd_compare(args_str: str):
+    """Compare salaries across cities, categories, or employment types."""
+    result = parse_compare_args(args_str)
+    if result is None:
+        return
+
+    axis_name, axis_values, filters = result
+
+    need_city = axis_name != "city"
+    need_category = axis_name != "category"
+
+    if need_city and not filters.city and not state.city:
+        console.print("  [error]Specify city, e.g.: /compare python java Krak\u00f3w senior b2b[/]")
+        return
+    if need_category and not filters.category and not state.category:
+        console.print("  [error]Specify category, e.g.: /compare Krak\u00f3w Warszawa python senior b2b[/]")
+        return
+
+    base_city = filters.city or state.city
+    base_category = filters.category or state.category
+
+    filter_parts = []
+    if base_city and axis_name != "city":
+        filter_parts.append(base_city)
+    if base_category and axis_name != "category":
+        filter_parts.append(base_category)
+    if filters.experience and axis_name != "experience":
+        filter_parts.append(filters.experience)
+    if filters.emp_type and axis_name != "employment":
+        filter_parts.append(filters.emp_type)
+    if filters.workplace and axis_name != "workplace":
+        filter_parts.append(filters.workplace)
+
+    axis_label = axis_name.replace("employment", "type")
+    console.print()
+    console.print(f"  [accent]Comparing by {axis_label}: {', '.join(axis_values)}[/]")
+    if filter_parts:
+        console.print(f"  [muted]Common filters: {' / '.join(filter_parts)}[/]")
+    console.print()
+
+    def build_params(val):
+        return (
+            val if axis_name == "city" else base_city,
+            val if axis_name == "category" else base_category,
+            val if axis_name == "experience" else filters.experience,
+            val if axis_name == "workplace" else filters.workplace,
+        )
+
+    group_data = scrape_groups(
+        axis_values,
+        build_params_fn=build_params,
+        label_fn=lambda v: v.replace("_", " ").title() if axis_name == "experience" else v,
+    )
+    if group_data is None:
+        return
+
+    emp_type = filters.emp_type
+    rows = []
+    for val in axis_values:
+        offers = group_data[val]
+        salaries = analyzer.extract_salaries(offers, emp_type)
+        stats = SalaryStats.compute(salaries)
+        if not stats:
+            rows.append((val, len(offers), 0, None, None, None))
+            continue
+        rows.append((val, len(offers), stats.count, stats.median_low, stats.median_high, stats.median_mid))
+
+    if all(row[3] is None for row in rows):
+        console.print("  [warn]No salary data for any group[/]")
+        return
+
+    type_label = f" / {emp_type.upper()}" if emp_type else ""
+    title = f"Compare by {axis_label}{type_label}"
+    if filter_parts:
+        title += f" \u2014 {' / '.join(filter_parts)}"
+
+    table = Table(
+        title=title,
+        title_style="bold magenta",
+        border_style="dim",
+    )
+    table.add_column(axis_label.title(), style="bold")
+    table.add_column("Offers", justify="right", style="muted")
+    table.add_column("With salary", justify="right", style="muted")
+    table.add_column("Median From", justify="right")
+    table.add_column("Median Mid", justify="right", style="salary")
+    table.add_column("Median To", justify="right")
+
+    for val, total, with_sal, med_lo, med_hi, med_mid in rows:
+        label = val.replace("_", " ").title() if axis_name == "experience" else val
+        if med_mid is None:
+            table.add_row(label, str(total), "0", "\u2014", "\u2014", "\u2014")
+        else:
+            table.add_row(
+                label, str(total), str(with_sal),
+                fmt_salary(med_lo), fmt_salary(med_mid), fmt_salary(med_hi),
+            )
+
+    console.print()
+    console.print(table)
+
+    chart_items = [
+        (val.replace("_", " ").title() if axis_name == "experience" else val, med_mid)
+        for val, _, _, _, _, med_mid in rows
+        if med_mid is not None
+    ]
+    print_bar_chart(chart_items)
+    console.print()
+
+
+# ---- Data browsing commands ----
+
+
+def cmd_companies():
+    """List companies in loaded data, sorted by number of offers."""
+    if not require_data():
+        return
+
+    counts = Counter(o.get("company_name", "?") for o in state.offers)
+
+    table = Table(
+        title=f"Companies ({len(counts)})",
+        title_style="bold magenta",
+        border_style="dim",
+    )
+    table.add_column("#", justify="right", style="muted")
+    table.add_column("Company", style="bold")
+    table.add_column("Offers", justify="right", style="accent")
+
+    for i, (company, count) in enumerate(counts.most_common(), 1):
+        table.add_row(str(i), company, str(count))
+
+    console.print()
+    console.print(table)
+    console.print()
+    console.print("  [muted]Use /show <company> to see offer details[/]")
+    console.print()
+
+
+def cmd_show(args_str: str):
+    """Show offers from a specific company."""
+    if not require_data():
+        return
+
+    query = args_str.strip().lower() if args_str else ""
+    if not query:
+        console.print("  [error]Specify company name: /show Revolut[/]")
+        return
+
+    # Tiered matching: exact -> startswith -> substring
+    matches = [o for o in state.offers if o.get("company_name", "").lower() == query]
+    if not matches:
+        matches = [o for o in state.offers if o.get("company_name", "").lower().startswith(query)]
+    if not matches:
+        matches = [o for o in state.offers if query in o.get("company_name", "").lower()]
+
+    if not matches:
+        console.print(f'  [warn]No offers found for "{args_str.strip()}"[/]')
+        return
+
+    # Compute medians per employment type for delta columns
+    medians = {}
+    for et_type in scrapper.EMPLOYMENT_TYPES:
+        salaries = analyzer.extract_salaries(state.offers, et_type)
+        if salaries:
+            lows = sorted(lo for lo, _, _ in salaries)
+            highs = sorted(hi for _, hi, _ in salaries)
+            medians[et_type] = (statistics.median(lows), statistics.median(highs))
+
+    table = Table(
+        title=f"{matches[0]['company_name']} \u2014 {len(matches)} offers",
+        title_style="bold magenta",
+        border_style="dim",
+    )
+    table.add_column("Title", style="bold")
+    table.add_column("Level", style="accent")
+    table.add_column("City")
+    table.add_column("Workplace")
+    table.add_column("From/mo", justify="right")
+    table.add_column("vs median", justify="right")
+    table.add_column("To/mo", justify="right")
+    table.add_column("vs median", justify="right")
+    table.add_column("Type")
+    table.add_column("Link", style="dim", no_wrap=True)
+
+    for o in matches:
+        ets = o.get("employment_types", [])
+        pln_by_type = {
+            et.get("type"): et for et in ets
+            if (et.get("currency") or "").upper() == "PLN" and et.get("salary_from") is not None
+        }
+        url = o.get("url", "")
+        if pln_by_type:
+            for et_type, et in pln_by_type.items():
+                sal_from = analyzer.normalize_monthly(et["salary_from"])
+                sal_to = analyzer.normalize_monthly(et["salary_to"])
+                delta_from = ""
+                delta_to = ""
+                if et_type in medians:
+                    med_lo, med_hi = medians[et_type]
+                    delta_from = fmt_delta(sal_from - med_lo)
+                    delta_to = fmt_delta(sal_to - med_hi)
+                table.add_row(
+                    o["title"], o.get("experience_level", ""),
+                    o.get("city", ""), o.get("workplace_type", ""),
+                    fmt_salary(sal_from), delta_from,
+                    fmt_salary(sal_to), delta_to,
+                    et_type or "",
+                    url,
+                )
+        else:
+            types = "/".join(dict.fromkeys(filter(None, (et.get("type") for et in ets))))
+            table.add_row(
+                o["title"], o.get("experience_level", ""),
+                o.get("city", ""), o.get("workplace_type", ""),
+                "[dim]-[/]", "", "[dim]-[/]", "",
+                f"[dim]{types or '-'}[/]",
+                url,
+            )
+
+    console.print()
+    console.print(table)
+    console.print()
+
+
+# ---- Internal helpers ----
+
+
+def _print_top_for_type(salaries, pct: int, label: str):
+    """Print top-companies tables for a single employment type."""
+    midpoints = sorted(analyzer.midpoint(lo, hi) for lo, hi, _ in salaries)
+    if len(midpoints) < 10:
+        console.print(f"  [muted]{label}: not enough data[/]")
+        return
+
+    threshold = analyzer.percentile(midpoints, pct)
+    above = [(lo, hi, o) for lo, hi, o in salaries if analyzer.midpoint(lo, hi) > threshold]
+    above.sort(key=lambda x: analyzer.midpoint(x[0], x[1]), reverse=True)
+
+    if not above:
+        console.print(f"  [muted]{label}: no offers > P{pct}[/]")
+        return
+
+    company_counts = Counter(o["company_name"] for _, _, o in above)
+
+    summary = Table(
+        title=f"Companies > P{pct} ({fmt_salary(threshold)}) \u2014 {label}",
+        title_style="bold magenta",
+        border_style="dim",
+    )
+    summary.add_column("Company", style="bold")
+    summary.add_column("Offers", justify="right", style="accent")
+    summary.add_column("Min", justify="right")
+    summary.add_column("Max", justify="right", style="salary")
+
+    for company, count in company_counts.most_common():
+        mids = [analyzer.midpoint(lo, hi) for lo, hi, o in above if o["company_name"] == company]
+        summary.add_row(company, str(count), fmt_salary(min(mids)), fmt_salary(max(mids)))
+
+    console.print()
+    console.print(summary)
+
+    detail = Table(
+        title=f"Offer details > P{pct} \u2014 {label}",
+        title_style="bold magenta",
+        border_style="dim",
+    )
+    detail.add_column("Mid", justify="right", style="salary")
+    detail.add_column("From", justify="right")
+    detail.add_column("To", justify="right")
+    detail.add_column("Company", style="bold")
+    detail.add_column("Title", style="dim")
+
+    for lo, hi, offer in above:
+        mid = analyzer.midpoint(lo, hi)
+        detail.add_row(
+            fmt_salary(mid), fmt_salary(lo), fmt_salary(hi),
+            offer["company_name"], offer["title"],
+        )
+
+    console.print()
+    console.print(detail)

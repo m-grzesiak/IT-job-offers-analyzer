@@ -31,6 +31,9 @@ dependencies = [
     "prompt_toolkit>=3.0",
 ]
 
+[project.optional-dependencies]
+test = ["pytest>=8.0"]
+
 [project.urls]
 Homepage = "https://github.com/m-grzesiak/IT-job-offers-analyzer"
 Repository = "https://github.com/m-grzesiak/IT-job-offers-analyzer"
@@ -38,3 +41,6 @@ Issues = "https://github.com/m-grzesiak/IT-job-offers-analyzer/issues"
 
 [project.scripts]
 itjobs = "it_job_offers_analyzer.cli:main"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
