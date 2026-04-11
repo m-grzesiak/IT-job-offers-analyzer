@@ -49,9 +49,9 @@ def require_data() -> bool:
 
 
 def scrape_groups(
-    group_values: list[str],
-    build_params_fn: Callable[[str], tuple[str, str, str | None, str | None]],
-    label_fn: Callable[[str], str] | None = None,
+        group_values: list[str],
+        build_params_fn: Callable[[str], tuple[str, str, str | None, str | None]],
+        label_fn: Callable[[str], str] | None = None,
 ) -> dict[str, list[dict]] | None:
     """Scrape multiple groups with a shared progress display.
 
@@ -71,11 +71,11 @@ def scrape_groups(
     result = {}
     try:
         with CancellableProgress(
-            SpinnerColumn(style=C_CYAN),
-            TextColumn("[progress.description]{task.description}"),
-            _PROGRESS_BAR,
-            MofNCompleteColumn(),
-            console=console,
+                SpinnerColumn(style=C_CYAN),
+                TextColumn("[progress.description]{task.description}"),
+                _PROGRESS_BAR,
+                MofNCompleteColumn(),
+                console=console,
         ) as progress:
             for val in group_values:
                 label = label_fn(val)
@@ -112,11 +112,11 @@ def _scrape(city, category, experience, workplace, fetch_details) -> bool:
         )
 
         with CancellableProgress(
-            SpinnerColumn(style=C_CYAN),
-            TextColumn("[progress.description]{task.description}"),
-            _PROGRESS_BAR,
-            MofNCompleteColumn(),
-            console=console,
+                SpinnerColumn(style=C_CYAN),
+                TextColumn("[progress.description]{task.description}"),
+                _PROGRESS_BAR,
+                MofNCompleteColumn(),
+                console=console,
         ) as progress:
             task = progress.add_task(
                 f"[bold {C_CYAN}]justjoin.it[/] [dim]›[/] {filter_label}",

@@ -127,11 +127,11 @@ def parse_compare_args(args_str: str) -> tuple[str, list[str], FilterArgs] | Non
 def _report_unknown(tokens: list[str]):
     """Report unrecognized tokens with did-you-mean suggestions."""
     all_known = (
-        set(scrapper.CATEGORIES)
-        | set(scrapper.EXPERIENCE_LEVELS)
-        | set(scrapper.WORKPLACE_TYPES)
-        | set(scrapper.EMPLOYMENT_TYPES)
-        | {c.lower() for c in CITIES}
+            set(scrapper.CATEGORIES)
+            | set(scrapper.EXPERIENCE_LEVELS)
+            | set(scrapper.WORKPLACE_TYPES)
+            | set(scrapper.EMPLOYMENT_TYPES)
+            | {c.lower() for c in CITIES}
     )
     for token in tokens:
         console.print(f'  [warn]Unknown argument: "{token}"[/]')

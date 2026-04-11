@@ -31,7 +31,7 @@ THEME = Theme({
     "success": f"bold {C_GREEN}",
     "accent": f"bold {C_CYAN}",
     "muted": "dim",
-    "salary": f"bold {C_FG}",
+    "salary": C_FG,
     "header": S_TITLE,
     "highlight": C_PINK,
     "label": C_CYAN,
@@ -45,7 +45,8 @@ console = Console(theme=THEME)
 
 def make_table(title: str = "", **kwargs) -> Table:
     """Create a table with standard modern styling (rounded, purple title, gray border, zebra stripes)."""
-    defaults = {"box": box.ROUNDED, "border_style": C_BORDER}
+    defaults = {"box": box.ROUNDED, "border_style": C_BORDER, "header_style": f"bold {C_CYAN}",
+                "caption_style": C_BORDER}
     if title:
         defaults["title"] = title
         defaults["title_style"] = S_TITLE
@@ -53,11 +54,12 @@ def make_table(title: str = "", **kwargs) -> Table:
     return Table(**defaults)
 
 
-def make_panel(content, title: str = "", **kwargs) -> Panel:
+def make_panel(content, title: str = "", icon: str = "", **kwargs) -> Panel:
     """Create a panel with standard modern styling (rounded, purple border)."""
     defaults: dict = {"box": box.ROUNDED, "border_style": C_PURPLE, "padding": (1, 2)}
-    if title:
-        defaults["title"] = f"[{S_TITLE}] {title} [/]"
+    label = f"{icon} {title}" if icon else title
+    if label:
+        defaults["title"] = f"[{S_TITLE}] {label} [/]"
     defaults.update(kwargs)
     return Panel(content, **defaults)
 
@@ -130,12 +132,26 @@ _TAG_COLORS = {
 }
 
 
+def print_hint(*commands: str, desc: str = ""):
+    """Print a 'Try: ...' footer with consistently styled commands.
+
+    Usage:
+        print_hint("/top >P75", "/outliers", "/show <company>")
+        print_hint("/show <company>", desc="to see all offers for a given company")
+    """
+    parts = f" [muted]\u00b7[/] ".join(f"[accent]{cmd}[/]" for cmd in commands)
+    if desc:
+        console.print(f"  [muted]Try:[/] {parts} [muted]{desc}[/]")
+    else:
+        console.print(f"  [muted]Try:[/] {parts}")
+
+
 def fmt_tag(text: str) -> str:
     """Format a value as a colored pill/badge."""
     if not text or text == "-":
         return f"[dim]{text or '-'}[/]"
     color = _TAG_COLORS.get(text.lower(), C_BORDER)
-    return f"[{color} on {C_BG}]{text}[/]"
+    return f"[{color}]{text}[/]"
 
 
 # ---- Gradient bar visualization ----
@@ -197,7 +213,7 @@ def make_percentile_table(midpoints: list[float], title: str = "Percentiles (mid
     """Build a Rich table with percentile data and visual bars."""
     table = make_table(title, row_styles=None)
     table.add_column("Percentile", justify="right", style="accent")
-    table.add_column("Amount", justify="right", style="salary")
+    table.add_column("Amount", justify="right")
     table.add_column("Offers \u2264", justify="right", style="muted")
     table.add_column("", min_width=25)
 
@@ -225,7 +241,7 @@ def make_distribution_table(midpoints: list[float], title: str = "Salary Distrib
     table = make_table(title, row_styles=None)
     table.add_column("Bracket", justify="right", style="accent")
     table.add_column("Range", justify="right")
-    table.add_column("Offers", justify="right", style="salary")
+    table.add_column("Offers", justify="right")
     table.add_column("%", justify="right")
     table.add_column("", min_width=25)
 

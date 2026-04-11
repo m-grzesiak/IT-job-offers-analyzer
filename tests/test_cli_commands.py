@@ -347,7 +347,7 @@ class TestCmdRecent:
         clean_state.offers = [
             make_offer(
                 company_name="BumpedCo",
-                published_at=_recent_ts(1),           # bumped 1h ago
+                published_at=_recent_ts(1),  # bumped 1h ago
                 last_published_at="2020-01-01T12:00:00Z",  # actually 5 years old
             ),
         ]

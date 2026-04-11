@@ -34,18 +34,18 @@ from .display import C_BORDER, C_CYAN, C_PURPLE, console, make_panel
 # ---- Command registry ----
 
 COMMAND_REGISTRY: dict[str, tuple] = {
-    "/help":        (commands.cmd_help, False),
-    "/status":      (commands.cmd_status, False),
-    "/clear":       (commands.cmd_clear, False),
-    "/companies":   (commands.cmd_companies, False),
-    "/analyze":     (commands.cmd_analyze, True),
-    "/top":         (commands.cmd_top, True),
-    "/outliers":    (commands.cmd_outliers, True),
-    "/benefits":    (commands.cmd_benefits, True),
-    "/show":        (commands.cmd_show, True),
-    "/recent":      (commands.cmd_recent, True),
+    "/help": (commands.cmd_help, False),
+    "/status": (commands.cmd_status, False),
+    "/clear": (commands.cmd_clear, False),
+    "/companies": (commands.cmd_companies, False),
+    "/analyze": (commands.cmd_analyze, True),
+    "/top": (commands.cmd_top, True),
+    "/outliers": (commands.cmd_outliers, True),
+    "/benefits": (commands.cmd_benefits, True),
+    "/show": (commands.cmd_show, True),
+    "/recent": (commands.cmd_recent, True),
     "/progression": (commands.cmd_progression, True),
-    "/compare":     (commands.cmd_compare, True),
+    "/compare": (commands.cmd_compare, True),
 }
 
 
@@ -65,7 +65,7 @@ def show_welcome():
 
     console.print(make_panel(
         quick,
-        "\u2728 Quick start",
+        "Quick start", icon="\u2726",
         subtitle=f"[{C_BORDER}] Tab \u00b7 auto-complete  \u2502  ESC \u00b7 cancel [/]",
         border_style=C_BORDER,
         width=76,
